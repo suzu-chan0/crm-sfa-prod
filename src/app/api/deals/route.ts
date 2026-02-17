@@ -131,30 +131,44 @@ export async function POST(request: NextRequest) {
   }
 
   // Build data with optional quantity/price fields
-  const data: Record<string, unknown> = {
-    name: String(body.name).trim(),
-    customerCompanyId: body.customerCompanyId,
-    employeeId: body.employeeId,
-    phase: body.phase ?? "MEETING",
-    probability: body.probability ?? null,
-    importance: body.importance ?? null,
-    industry: body.industry ?? null,
-    usage: body.usage ?? null,
-  };
+// Decimal値を先に確定させる
+const expectedQuantity =
+  body.expectedQuantity != null && body.expectedQuantity !== ""
+    ? new Decimal(body.expectedQuantity)
+    : null;
 
-  if (body.expectedQuantity != null && body.expectedQuantity !== "") {
-    data.expectedQuantity = new Decimal(body.expectedQuantity);
-  }
-  if (body.expectedUnitPrice != null && body.expectedUnitPrice !== "") {
-    data.expectedUnitPrice = new Decimal(body.expectedUnitPrice);
-  }
+const expectedUnitPrice =
+  body.expectedUnitPrice != null && body.expectedUnitPrice !== ""
+    ? new Decimal(body.expectedUnitPrice)
+    : null;
 
-  // Auto-calculate expectedAmount
-  if (data.expectedQuantity && data.expectedUnitPrice) {
-    data.expectedAmount = (data.expectedQuantity as Decimal).mul(
-      data.expectedUnitPrice as Decimal
-    );
-  }
+// expectedAmountを計算
+const expectedAmount =
+  expectedQuantity && expectedUnitPrice
+    ? expectedQuantity.mul(expectedUnitPrice)
+    : null;
+
+// Prisma用dataを型付きで構築
+const data: Prisma.DealUncheckedCreateInput = {
+  name: String(body.name).trim(),
+
+  customerCompanyId: body.customerCompanyId,
+  employeeId: body.employeeId,
+
+  phase: body.phase ?? "MEETING",
+
+  probability:
+    body.probability != null ? Number(body.probability) : null,
+
+  importance: body.importance ?? null,
+  industry: body.industry ?? null,
+  usage: body.usage ?? null,
+
+  expectedQuantity,
+  expectedUnitPrice,
+  expectedAmount,
+};
+
 
   const deal = await prisma.deal.create({
     data,
