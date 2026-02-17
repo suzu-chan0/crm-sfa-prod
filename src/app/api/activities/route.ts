@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 
 const INCLUDE_RELATIONS = {
   deal: { select: { id: true, name: true } },
@@ -8,13 +9,51 @@ const INCLUDE_RELATIONS = {
 } as const;
 
 // GET /api/activities
-export async function GET() {
-  const activities = await prisma.activityHistory.findMany({
-    where: { isDeleted: false },
-    orderBy: { createdAt: "desc" },
-    include: INCLUDE_RELATIONS,
-  });
-  return NextResponse.json(activities);
+export async function GET(request: NextRequest) {
+  const sp = request.nextUrl.searchParams;
+  const dealId = sp.get("dealId") || "";
+  const employeeId = sp.get("employeeId") || "";
+  const method = sp.get("method") || "";
+  const dateFrom = sp.get("dateFrom") || "";
+  const dateTo = sp.get("dateTo") || "";
+  const page = Math.max(1, Number(sp.get("page")) || 1);
+  const pageSize = Math.min(100, Math.max(1, Number(sp.get("pageSize")) || 20));
+  const sortBy = sp.get("sortBy") || "activityDate";
+  const sortOrder = sp.get("sortOrder") === "asc" ? "asc" : "desc";
+
+  const ALLOWED_SORT: Record<string, string> = {
+    activityDate: "activityDate",
+    createdAt: "createdAt",
+  };
+  const orderField = ALLOWED_SORT[sortBy] ?? "activityDate";
+
+  const where: Prisma.ActivityHistoryWhereInput = { isDeleted: false };
+
+  if (dealId) where.dealId = dealId;
+  if (employeeId) where.employeeId = employeeId;
+  if (method) where.method = method;
+  if (dateFrom || dateTo) {
+    where.activityDate = {};
+    if (dateFrom) where.activityDate.gte = new Date(dateFrom);
+    if (dateTo) {
+      const to = new Date(dateTo);
+      to.setHours(23, 59, 59, 999);
+      where.activityDate.lte = to;
+    }
+  }
+
+  const [total, activities] = await Promise.all([
+    prisma.activityHistory.count({ where }),
+    prisma.activityHistory.findMany({
+      where,
+      orderBy: { [orderField]: sortOrder },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+      include: INCLUDE_RELATIONS,
+    }),
+  ]);
+
+  return NextResponse.json({ items: activities, total, page, pageSize });
 }
 
 // POST /api/activities

@@ -7,6 +7,8 @@ export async function GET(request: NextRequest) {
   const sp = request.nextUrl.searchParams;
   const companyId = sp.get("companyId") || "";
   const q = sp.get("q")?.trim() || "";
+  const page = Math.max(1, Number(sp.get("page")) || 1);
+  const pageSize = Math.min(100, Math.max(1, Number(sp.get("pageSize")) || 20));
 
   const where: Prisma.CustomerContactWhereInput = { isDeleted: false };
 
@@ -21,15 +23,20 @@ export async function GET(request: NextRequest) {
     ];
   }
 
-  const contacts = await prisma.customerContact.findMany({
-    where,
-    orderBy: { createdAt: "desc" },
-    include: {
-      customerCompany: { select: { id: true, name: true } },
-    },
-  });
+  const [total, contacts] = await Promise.all([
+    prisma.customerContact.count({ where }),
+    prisma.customerContact.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+      include: {
+        customerCompany: { select: { id: true, name: true } },
+      },
+    }),
+  ]);
 
-  return NextResponse.json(contacts);
+  return NextResponse.json({ items: contacts, total, page, pageSize });
 }
 
 // POST /api/contacts
