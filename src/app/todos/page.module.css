@@ -1,0 +1,103 @@
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.title {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.filters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+}
+
+.filterGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.filterGroup label {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  font-weight: 600;
+}
+
+.tableWrap {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.statusBadge {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.statusNotStarted {
+  composes: statusBadge;
+  background: #e0e0e0;
+  color: #444;
+}
+
+.statusInProgress {
+  composes: statusBadge;
+  background: #fff3cd;
+  color: #856404;
+}
+
+.statusCompleted {
+  composes: statusBadge;
+  background: #d4edda;
+  color: #155724;
+}
+
+.priorityHigh {
+  color: var(--color-error);
+  font-weight: 700;
+}
+
+.priorityMedium {
+  color: var(--color-warning);
+  font-weight: 600;
+}
+
+.priorityLow {
+  color: var(--color-text-secondary);
+}
+
+.overdue {
+  color: var(--color-error);
+  font-weight: 600;
+}
+
+.error {
+  color: var(--color-error);
+  padding: 20px;
+}
+
+.loading {
+  color: var(--color-text-secondary);
+  padding: 20px;
+}
+
+.empty {
+  padding: 20px;
+  text-align: center;
+  color: var(--color-text-secondary);
+}
