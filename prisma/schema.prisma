@@ -1,8 +1,3 @@
-// ============================================================
-// CRM/SFA System - Prisma Schema (Phase 1)
-// DB: Azure SQL (sqlserver) / Schema: CRMSFASystem
-// ============================================================
-
 generator client {
   provider        = "prisma-client-js"
   previewFeatures = ["multiSchema"]
@@ -14,158 +9,140 @@ datasource db {
   schemas  = ["CRMSFASystem"]
 }
 
-// ============================================================
-// Employee（社員）
-// ============================================================
 model Employee {
-  id         String  @id @default(uuid())
-  name       String
-  department String?
-  position   String?
-  phone      String?
-  email      String  @unique
-  isActive   Boolean @default(true) @map("is_active")
-
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
+  id                String            @id @default(uuid())
+  name              String
+  department        String?
+  position          String?
+  phone             String?
+  email             String            @unique
+  isActive          Boolean           @default(true) @map("is_active")
+  createdAt         DateTime          @default(now()) @map("created_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
+  activityHistories ActivityHistory[] @relation("ActivityEmployee")
   deals             Deal[]            @relation("DealEmployee")
   assignedTodos     Todo[]            @relation("TodoAssignee")
-  activityHistories ActivityHistory[] @relation("ActivityEmployee")
 
   @@map("employees")
   @@schema("CRMSFASystem")
 }
 
-// ============================================================
-// CustomerCompany（顧客企業）
-// DB テーブル名: customers（既存テーブルを維持）
-// ============================================================
 model CustomerCompany {
-  id        String   @id @default(uuid())
-  name      String
-  createdAt DateTime @default(now()) @map("created_at")
-
+  id                String            @id @default(uuid())
+  name              String
+  address           String?
+  industry          String?
+  usage             String?
+  isDeleted         Boolean           @default(false) @map("is_deleted")
+  createdAt         DateTime          @default(now()) @map("created_at")
+  updatedAt         DateTime          @default(now()) @updatedAt @map("updated_at")
+  activityHistories ActivityHistory[] @relation("ActivityCustomer")
   contacts          CustomerContact[]
   deals             Deal[]
   todos             Todo[]            @relation("TodoCustomer")
-  activityHistories ActivityHistory[] @relation("ActivityCustomer")
 
   @@map("customers")
   @@schema("CRMSFASystem")
 }
 
-// ============================================================
-// CustomerContact（顧客担当者）
-// ============================================================
 model CustomerContact {
-  id         String  @id @default(uuid())
-  name       String
-  department String?
-  position   String?
-  phone      String?
-  email      String?
-  isDeleted  Boolean @default(false) @map("is_deleted")
-
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
+  id                String          @id @default(uuid())
+  name              String
+  department        String?
+  position          String?
+  phone             String?
+  email             String?
+  isDeleted         Boolean         @default(false) @map("is_deleted")
+  createdAt         DateTime        @default(now()) @map("created_at")
+  updatedAt         DateTime        @updatedAt @map("updated_at")
   customerCompanyId String          @map("customer_company_id")
-  customerCompany   CustomerCompany @relation(fields: [customerCompanyId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  customerCompany   CustomerCompany @relation(fields: [customerCompanyId], references: [id], onUpdate: NoAction)
 
   @@map("customer_contacts")
   @@schema("CRMSFASystem")
 }
 
-// ============================================================
-// Deal（案件）
-// ============================================================
 model Deal {
-  id                String   @id @default(uuid())
+  id                String            @id @default(uuid())
   name              String
-  phase             String   @default("MEETING")
+  phase             String            @default("MEETING")
   probability       Int?
-  expectedQuantity  Decimal? @map("expected_quantity")
-  expectedUnitPrice Decimal? @map("expected_unit_price")
-  expectedAmount    Decimal? @map("expected_amount")
+  expectedQuantity  Decimal?          @map("expected_quantity")
+  expectedUnitPrice Decimal?          @map("expected_unit_price")
+  expectedAmount    Decimal?          @map("expected_amount")
   industry          String?
   usage             String?
   importance        String?
-  stagnationReason  String?  @map("stagnation_reason")
-  isDeleted         Boolean  @default(false) @map("is_deleted")
-
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  customerCompanyId String          @map("customer_company_id")
-  customerCompany   CustomerCompany @relation(fields: [customerCompanyId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-
-  employeeId String   @map("employee_id")
-  employee   Employee @relation("DealEmployee", fields: [employeeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-
-  todos             Todo[]
-  activityHistories ActivityHistory[]
+  stagnationReason  String?           @map("stagnation_reason")
+  isDeleted         Boolean           @default(false) @map("is_deleted")
+  createdAt         DateTime          @default(now()) @map("created_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
+  customerCompanyId String            @map("customer_company_id")
+  employeeId        String            @map("employee_id")
+  activityHistories    ActivityHistory[]
+  phaseChangeHistories PhaseChangeHistory[]
+  customerCompany      CustomerCompany   @relation(fields: [customerCompanyId], references: [id], onUpdate: NoAction)
+  employee             Employee          @relation("DealEmployee", fields: [employeeId], references: [id], onUpdate: NoAction)
+  todos                Todo[]
 
   @@map("deals")
   @@schema("CRMSFASystem")
 }
 
-// ============================================================
-// Todo（TODO / ネクストアクション）
-// ============================================================
 model Todo {
-  id          String    @id @default(uuid())
-  title       String
-  description String?
-  dueDate     DateTime? @map("due_date")
-  status      String    @default("NOT_STARTED")
-  priority    String    @default("MEDIUM")
-  type        String    @default("TODO")
-  startDate   DateTime? @map("start_date")
-  completedAt DateTime? @map("completed_at")
-  completedBy String?   @map("completed_by")
-
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
+  id                String           @id @default(uuid())
+  title             String
+  description       String?
+  dueDate           DateTime?        @map("due_date")
+  status            String           @default("NOT_STARTED")
+  priority          String           @default("MEDIUM")
+  type              String           @default("TODO")
+  startDate         DateTime?        @map("start_date")
+  completedAt       DateTime?        @map("completed_at")
+  completedBy       String?          @map("completed_by")
+  createdAt         DateTime         @default(now()) @map("created_at")
+  updatedAt         DateTime         @updatedAt @map("updated_at")
   dealId            String?          @map("deal_id")
-  deal              Deal?            @relation(fields: [dealId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-
   customerCompanyId String?          @map("customer_company_id")
-  customerCompany   CustomerCompany? @relation("TodoCustomer", fields: [customerCompanyId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-
   assigneeId        String?          @map("assignee_id")
   assignee          Employee?        @relation("TodoAssignee", fields: [assigneeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  customerCompany   CustomerCompany? @relation("TodoCustomer", fields: [customerCompanyId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  deal              Deal?            @relation(fields: [dealId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@map("todos")
   @@schema("CRMSFASystem")
 }
 
-// ============================================================
-// ActivityHistory（活動履歴）
-// ============================================================
+model PhaseChangeHistory {
+  id            String   @id @default(uuid())
+  dealId        String   @map("deal_id")
+  fromPhase     String   @map("from_phase")
+  toPhase       String   @map("to_phase")
+  changedAt     DateTime @default(now()) @map("changed_at")
+  deal          Deal     @relation(fields: [dealId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@map("phase_change_histories")
+  @@schema("CRMSFASystem")
+}
+
 model ActivityHistory {
-  id           String   @id @default(uuid())
-  activityDate DateTime @map("activity_date")
-  activityType String?  @map("activity_type")
-  method       String
-  isVisit      Boolean  @default(false) @map("is_visit")
-  result       String?
-  memo         String?
-  duration     Int?
-  isDeleted    Boolean  @default(false) @map("is_deleted")
-
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
+  id                String           @id @default(uuid())
+  activityDate      DateTime         @map("activity_date")
+  activityType      String?          @map("activity_type")
+  method            String
+  isVisit           Boolean          @default(false) @map("is_visit")
+  result            String?
+  memo              String?
+  duration          Int?
+  isDeleted         Boolean          @default(false) @map("is_deleted")
+  createdAt         DateTime         @default(now()) @map("created_at")
+  updatedAt         DateTime         @updatedAt @map("updated_at")
   dealId            String?          @map("deal_id")
-  deal              Deal?            @relation(fields: [dealId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-
   customerCompanyId String?          @map("customer_company_id")
-  customerCompany   CustomerCompany? @relation("ActivityCustomer", fields: [customerCompanyId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-
   employeeId        String           @map("employee_id")
-  employee          Employee         @relation("ActivityEmployee", fields: [employeeId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  customerCompany   CustomerCompany? @relation("ActivityCustomer", fields: [customerCompanyId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  deal              Deal?            @relation(fields: [dealId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  employee          Employee         @relation("ActivityEmployee", fields: [employeeId], references: [id], onUpdate: NoAction)
 
   @@map("activity_histories")
   @@schema("CRMSFASystem")

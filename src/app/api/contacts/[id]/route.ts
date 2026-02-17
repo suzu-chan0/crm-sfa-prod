@@ -1,6 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+// GET /api/contacts/[id]
+export async function GET(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  const contact = await prisma.customerContact.findUnique({
+    where: { id },
+    include: {
+      customerCompany: { select: { id: true, name: true } },
+    },
+  });
+  if (!contact || contact.isDeleted) {
+    return NextResponse.json({ error: "contact not found" }, { status: 404 });
+  }
+  return NextResponse.json(contact);
+}
+
 // PATCH /api/contacts/[id]
 export async function PATCH(
   request: NextRequest,

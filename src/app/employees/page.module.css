@@ -39,6 +39,15 @@
   font-weight: 600;
 }
 
+.checkLabel {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  padding-top: 14px;
+}
+
 .tableWrap {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
@@ -89,13 +98,11 @@
 .successMsg {
   color: var(--color-success);
   font-size: 12px;
-  align-self: center;
 }
 
 .errorMsg {
   color: var(--color-error);
   font-size: 12px;
-  align-self: center;
 }
 
 .empty {
@@ -132,21 +139,40 @@
   text-decoration: underline;
 }
 
-.deleteBtn {
+.toggleBtn {
   background: none;
   border: none;
-  color: var(--color-error);
   cursor: pointer;
   font-size: 12px;
   padding: 2px 6px;
 }
 
-.deleteBtn:hover {
+.toggleBtn:hover {
   text-decoration: underline;
 }
 
+.activeBadge {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--color-success);
+  color: #fff;
+}
+
+.inactiveBadge {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--color-text-secondary);
+  color: #fff;
+}
+
 .editRow {
-  background: var(--color-surface-alt, #f8f9fb);
+  background: #f8f9fb;
 }
 
 .editInput {
@@ -179,43 +205,4 @@
   font-size: 11px;
   padding: 3px 10px;
   cursor: pointer;
-}
-
-.editErrMsg {
-  color: var(--color-error);
-  font-size: 11px;
-  display: block;
-  margin-top: 2px;
-}
-
-.paging {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 12px;
-  margin-top: 16px;
-}
-
-.paging button {
-  padding: 4px 14px;
-  border: 1px solid var(--color-border);
-  border-radius: 4px;
-  background: var(--color-surface);
-  cursor: pointer;
-  font-size: 12px;
-}
-
-.paging button:hover:not(:disabled) {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-}
-
-.paging button:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.pageInfo {
-  font-size: 12px;
-  color: var(--color-text-secondary);
 }

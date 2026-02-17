@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
+import { Decimal } from "@prisma/client/runtime/library";
 
 // GET /api/deals
 export async function GET(request: NextRequest) {
@@ -8,6 +9,10 @@ export async function GET(request: NextRequest) {
   const q = sp.get("q")?.trim() || "";
   const employeeId = sp.get("employeeId") || "";
   const phase = sp.get("phase") || "";
+  const importance = sp.get("importance") || "";
+  const dateFrom = sp.get("dateFrom") || "";
+  const dateTo = sp.get("dateTo") || "";
+  const stagnant = sp.get("stagnant") || "";
   const page = Math.max(1, Number(sp.get("page")) || 1);
   const pageSize = Math.min(100, Math.max(1, Number(sp.get("pageSize")) || 20));
   const sortBy = sp.get("sortBy") || "updatedAt";
@@ -18,6 +23,7 @@ export async function GET(request: NextRequest) {
     expectedAmount: "expectedAmount",
     probability: "probability",
     name: "name",
+    createdAt: "createdAt",
   };
   const orderField = ALLOWED_SORT[sortBy] ?? "updatedAt";
 
@@ -32,11 +38,24 @@ export async function GET(request: NextRequest) {
       { customerCompany: { name: { contains: q } } },
     ];
   }
-  if (employeeId) {
-    where.employeeId = employeeId;
+  if (employeeId) where.employeeId = employeeId;
+  if (phase) where.phase = phase;
+  if (importance) where.importance = importance;
+
+  // Period filter (on updatedAt)
+  if (dateFrom || dateTo) {
+    where.updatedAt = {};
+    if (dateFrom) where.updatedAt.gte = new Date(dateFrom);
+    if (dateTo) {
+      const to = new Date(dateTo);
+      to.setHours(23, 59, 59, 999);
+      where.updatedAt.lte = to;
+    }
   }
-  if (phase) {
-    where.phase = phase;
+
+  // Stagnation filter: deals with stagnationReason set
+  if (stagnant === "true") {
+    where.stagnationReason = { not: null };
   }
 
   const [total, deals] = await Promise.all([
@@ -111,15 +130,34 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Build data with optional quantity/price fields
+  const data: Record<string, unknown> = {
+    name: String(body.name).trim(),
+    customerCompanyId: body.customerCompanyId,
+    employeeId: body.employeeId,
+    phase: body.phase ?? "MEETING",
+    probability: body.probability ?? null,
+    importance: body.importance ?? null,
+    industry: body.industry ?? null,
+    usage: body.usage ?? null,
+  };
+
+  if (body.expectedQuantity != null && body.expectedQuantity !== "") {
+    data.expectedQuantity = new Decimal(body.expectedQuantity);
+  }
+  if (body.expectedUnitPrice != null && body.expectedUnitPrice !== "") {
+    data.expectedUnitPrice = new Decimal(body.expectedUnitPrice);
+  }
+
+  // Auto-calculate expectedAmount
+  if (data.expectedQuantity && data.expectedUnitPrice) {
+    data.expectedAmount = (data.expectedQuantity as Decimal).mul(
+      data.expectedUnitPrice as Decimal
+    );
+  }
+
   const deal = await prisma.deal.create({
-    data: {
-      name: String(body.name).trim(),
-      customerCompanyId: body.customerCompanyId,
-      employeeId: body.employeeId,
-      phase: body.phase ?? "MEETING",
-      probability: body.probability ?? null,
-      importance: body.importance ?? null,
-    },
+    data,
     include: {
       customerCompany: { select: { id: true, name: true } },
       employee: { select: { id: true, name: true } },

@@ -1,7 +1,12 @@
 {
   "permissions": {
     "allow": [
-      "Bash(pdftotext:*)"
+      "Bash(pdftotext:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx prisma generate:*)",
+      "Bash(npx prisma db push:*)",
+      "Bash(ls:*)",
+      "Bash(python3:*)"
     ]
   }
 }
