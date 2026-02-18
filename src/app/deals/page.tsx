@@ -202,13 +202,43 @@ export default function DealsPage() {
     }
   };
 
+  const overdueTodoTotal = useMemo(
+    () => kanbanDeals.reduce((sum, d) => sum + d.overdueTodoCount, 0),
+    [kanbanDeals],
+  );
+  const stagnantTotal = useMemo(
+    () => kanbanDeals.filter((d) => d.importance === "HIGH" || d.overdueTodoCount > 0).length,
+    [kanbanDeals],
+  );
+
+  // Column subtotal amounts
+  const columnAmounts = useMemo(() => {
+    const amounts: Record<string, number> = {};
+    for (const ph of KANBAN_PHASES) {
+      amounts[ph] = (kanbanColumns[ph] || []).reduce(
+        (sum, d) => sum + (d.expectedAmount ? Number(d.expectedAmount) : 0),
+        0,
+      );
+    }
+    return amounts;
+  }, [kanbanColumns]);
+
   if (error) return <p className={styles.error}>エラー: {error}</p>;
 
   return (
     <div>
       <div className={styles.header}>
         <h1 className={styles.title}>案件一覧</h1>
-        <span className={styles.totalCount}>{kanbanDeals.length}件</span>
+        <div className={styles.headerRight}>
+          <span className={styles.totalCount}>{kanbanDeals.length}件</span>
+          <button
+            type="button"
+            className="primary"
+            onClick={() => { setShowCreate(!showCreate); setCreateErr(""); }}
+          >
+            {showCreate ? "閉じる" : "案件追加"}
+          </button>
+        </div>
       </div>
 
       {/* Summary cards */}
@@ -220,17 +250,16 @@ export default function DealsPage() {
           </div>
           <div className={styles.summaryCard}>
             <div className={styles.summaryLabel}>見込総額</div>
-            <div className={styles.summaryValue}>{fmt(summary.totalExpectedAmount)}</div>
+            <div className={styles.summaryValue}>{fmt(summary.totalExpectedAmount)}円</div>
           </div>
-          {["MEETING", "SAMPLE_PROVIDED", "INITIAL_EVAL", "FULL_EVAL", "WON"].map((ph) => (
-            <div key={ph} className={styles.summaryCard}>
-              <div className={styles.summaryLabel}>{PHASE_LABEL[ph]}</div>
-              <div className={styles.summaryValue}>{summary.phaseCounts[ph] ?? 0}件</div>
-              {(summary.phaseAmounts[ph] ?? 0) > 0 && (
-                <div className={styles.summarySubValue}>{fmt(summary.phaseAmounts[ph])}円</div>
-              )}
-            </div>
-          ))}
+          <div className={`${styles.summaryCard} ${overdueTodoTotal > 0 ? styles.summaryAlert : ""}`}>
+            <div className={styles.summaryLabel}>期限超過TODO</div>
+            <div className={styles.summaryValue}>{overdueTodoTotal}件</div>
+          </div>
+          <div className={styles.summaryCard}>
+            <div className={styles.summaryLabel}>要注意案件</div>
+            <div className={styles.summaryValue}>{stagnantTotal}件</div>
+          </div>
         </div>
       )}
 
@@ -279,14 +308,6 @@ export default function DealsPage() {
             停滞のみ
           </label>
         </div>
-        <div className={styles.filterSpacer} />
-        <button
-          type="button"
-          className={`primary ${styles.addBtn}`}
-          onClick={() => { setShowCreate(!showCreate); setCreateErr(""); }}
-        >
-          {showCreate ? "閉じる" : "案件追加"}
-        </button>
       </div>
 
       {/* Create form */}
@@ -398,8 +419,13 @@ export default function DealsPage() {
           {KANBAN_PHASES.map((ph) => (
             <div key={ph} className={styles.kanbanColumn}>
               <div className={styles.kanbanColumnHeader}>
-                <span className={styles.kanbanColumnTitle}>{PHASE_LABEL[ph]}</span>
-                <span className={styles.kanbanColumnCount}>{kanbanColumns[ph].length}</span>
+                <div>
+                  <span className={styles.kanbanColumnTitle}>{PHASE_LABEL[ph]}</span>
+                  <span className={styles.kanbanColumnCount}>{kanbanColumns[ph].length}</span>
+                </div>
+                {columnAmounts[ph] > 0 && (
+                  <div className={styles.kanbanColumnAmount}>{fmt(columnAmounts[ph])}円</div>
+                )}
               </div>
               <div className={styles.kanbanColumnBody}>
                 {kanbanColumns[ph].map((deal) => (
@@ -408,22 +434,23 @@ export default function DealsPage() {
                     href={`/deals/${deal.id}`}
                     className={styles.kanbanCard}
                   >
-                    <div className={styles.kanbanCardTitle}>{deal.name}</div>
-                    <div className={styles.kanbanCardMeta}>
-                      {deal.customerCompany?.name ?? "—"}
+                    <div className={styles.kanbanCardTitle}>
+                      {deal.name}
+                      {deal.overdueTodoCount > 0 && (
+                        <span className={styles.overdueBadge} title={`期限超過TODO: ${deal.overdueTodoCount}件`}>!</span>
+                      )}
                     </div>
                     <div className={styles.kanbanCardMeta}>
-                      {deal.employee?.name ?? "—"}
-                      {deal.probability != null && ` / ${deal.probability}%`}
+                      {deal.customerCompany?.name ?? "—"}{deal.employee ? ` / ${deal.employee.name}` : ""}
                     </div>
-                    {deal.expectedAmount && (
-                      <div className={styles.kanbanCardAmount}>
-                        {Number(deal.expectedAmount).toLocaleString()}円
-                      </div>
-                    )}
-                    {deal.overdueTodoCount > 0 && (
-                      <span className={styles.overdueBadge} title={`期限超過TODO: ${deal.overdueTodoCount}件`}>!</span>
-                    )}
+                    <div className={styles.kanbanCardBottom}>
+                      <span className={styles.kanbanCardAmount}>
+                        {deal.expectedAmount ? `${Number(deal.expectedAmount).toLocaleString()}円` : "—"}
+                      </span>
+                      {deal.probability != null && (
+                        <span className={styles.kanbanCardProb}>{deal.probability}%</span>
+                      )}
+                    </div>
                   </Link>
                 ))}
                 {kanbanColumns[ph].length === 0 && (

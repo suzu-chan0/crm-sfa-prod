@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, FormEvent } from "react";
 import styles from "./page.module.css";
+import { RowActionMenu } from "@/app/components/RowActionMenu";
 
 type Employee = {
   id: string;
@@ -21,6 +22,7 @@ export default function EmployeesPage() {
   const [showInactive, setShowInactive] = useState(false);
 
   // Create form
+  const [showCreate, setShowCreate] = useState(false);
   const [formName, setFormName] = useState("");
   const [formEmail, setFormEmail] = useState("");
   const [formDept, setFormDept] = useState("");
@@ -36,6 +38,7 @@ export default function EmployeesPage() {
     name: "", email: "", department: "", position: "", phone: "",
   });
   const [editErr, setEditErr] = useState("");
+
 
   const fetchEmployees = useCallback(() => {
     setLoading(true);
@@ -54,6 +57,7 @@ export default function EmployeesPage() {
   useEffect(() => {
     fetchEmployees();
   }, [fetchEmployees]);
+
 
   const handleCreate = async (e: FormEvent) => {
     e.preventDefault();
@@ -172,8 +176,53 @@ export default function EmployeesPage() {
     <div>
       <div className={styles.header}>
         <h1 className={styles.title}>社員一覧</h1>
-        <span className={styles.totalCount}>{employees.length}件</span>
+        <div className={styles.headerRight}>
+          <span className={styles.totalCount}>{employees.length}件</span>
+          <button
+            type="button"
+            className="primary"
+            onClick={() => { setShowCreate(!showCreate); setCreateErr(""); setCreateMsg(""); }}
+          >
+            {showCreate ? "閉じる" : "+追加"}
+          </button>
+        </div>
       </div>
+
+      {/* Create form (expandable) */}
+      {showCreate && (
+        <form className={styles.form} onSubmit={handleCreate}>
+          <div className={styles.formGrid}>
+            <div className={styles.formGroup}>
+              <label>氏名 *</label>
+              <input type="text" value={formName} onChange={(e) => setFormName(e.target.value)} />
+            </div>
+            <div className={styles.formGroup}>
+              <label>メール *</label>
+              <input type="text" value={formEmail} onChange={(e) => setFormEmail(e.target.value)} />
+            </div>
+            <div className={styles.formGroup}>
+              <label>所属</label>
+              <input type="text" value={formDept} onChange={(e) => setFormDept(e.target.value)} />
+            </div>
+            <div className={styles.formGroup}>
+              <label>役職</label>
+              <input type="text" value={formPosition} onChange={(e) => setFormPosition(e.target.value)} />
+            </div>
+            <div className={styles.formGroup}>
+              <label>電話</label>
+              <input type="text" value={formPhone} onChange={(e) => setFormPhone(e.target.value)} />
+            </div>
+          </div>
+          <div className={styles.formActions}>
+            <button type="submit" className="primary" disabled={creating}>
+              {creating ? "追加中..." : "追加"}
+            </button>
+            <button type="button" onClick={() => setShowCreate(false)}>キャンセル</button>
+            {createMsg && <span className={styles.successMsg}>{createMsg}</span>}
+            {createErr && <span className={styles.errorMsg}>{createErr}</span>}
+          </div>
+        </form>
+      )}
 
       <div className={styles.filters}>
         <div className={styles.filterGroup}>
@@ -203,7 +252,7 @@ export default function EmployeesPage() {
                 <th>役職</th>
                 <th>電話</th>
                 <th>状態</th>
-                <th style={{ width: 120 }}></th>
+                <th style={{ width: 48 }}></th>
               </tr>
             </thead>
             <tbody>
@@ -211,39 +260,19 @@ export default function EmployeesPage() {
                 editId === emp.id ? (
                   <tr key={emp.id} className={styles.editRow}>
                     <td>
-                      <input
-                        className={styles.editInput}
-                        value={editData.name}
-                        onChange={(e) => setEditData({ ...editData, name: e.target.value })}
-                      />
+                      <input className={styles.editInput} value={editData.name} onChange={(e) => setEditData({ ...editData, name: e.target.value })} />
                     </td>
                     <td>
-                      <input
-                        className={styles.editInput}
-                        value={editData.email}
-                        onChange={(e) => setEditData({ ...editData, email: e.target.value })}
-                      />
+                      <input className={styles.editInput} value={editData.email} onChange={(e) => setEditData({ ...editData, email: e.target.value })} />
                     </td>
                     <td>
-                      <input
-                        className={styles.editInput}
-                        value={editData.department}
-                        onChange={(e) => setEditData({ ...editData, department: e.target.value })}
-                      />
+                      <input className={styles.editInput} value={editData.department} onChange={(e) => setEditData({ ...editData, department: e.target.value })} />
                     </td>
                     <td>
-                      <input
-                        className={styles.editInput}
-                        value={editData.position}
-                        onChange={(e) => setEditData({ ...editData, position: e.target.value })}
-                      />
+                      <input className={styles.editInput} value={editData.position} onChange={(e) => setEditData({ ...editData, position: e.target.value })} />
                     </td>
                     <td>
-                      <input
-                        className={styles.editInput}
-                        value={editData.phone}
-                        onChange={(e) => setEditData({ ...editData, phone: e.target.value })}
-                      />
+                      <input className={styles.editInput} value={editData.phone} onChange={(e) => setEditData({ ...editData, phone: e.target.value })} />
                     </td>
                     <td>
                       <span className={emp.isActive ? styles.activeBadge : styles.inactiveBadge}>
@@ -260,27 +289,23 @@ export default function EmployeesPage() {
                   </tr>
                 ) : (
                   <tr key={emp.id}>
-                    <td>{emp.name}</td>
-                    <td>{emp.email}</td>
-                    <td>{emp.department || "—"}</td>
-                    <td>{emp.position || "—"}</td>
-                    <td>{emp.phone || "—"}</td>
+                    <td className={styles.primaryCell}>{emp.name}</td>
+                    <td className={styles.secondaryCell}>{emp.email}</td>
+                    <td className={styles.secondaryCell}>{emp.department || "—"}</td>
+                    <td className={styles.secondaryCell}>{emp.position || "—"}</td>
+                    <td className={styles.secondaryCell}>{emp.phone || "—"}</td>
                     <td>
                       <span className={emp.isActive ? styles.activeBadge : styles.inactiveBadge}>
                         {emp.isActive ? "有効" : "無効"}
                       </span>
                     </td>
                     <td>
-                      <div className={styles.rowActions}>
-                        <button className={styles.editBtn} onClick={() => startEdit(emp)}>編集</button>
-                        <button
-                          className={styles.toggleBtn}
-                          style={{ color: emp.isActive ? "var(--color-error)" : "var(--color-success)" }}
-                          onClick={() => toggleActive(emp)}
-                        >
-                          {emp.isActive ? "無効化" : "有効化"}
-                        </button>
-                      </div>
+                      <RowActionMenu
+                        actions={[
+                          { label: "編集", onClick: () => startEdit(emp) },
+                          { label: emp.isActive ? "無効化" : "有効化", danger: emp.isActive, onClick: () => toggleActive(emp) },
+                        ]}
+                      />
                     </td>
                   </tr>
                 )
@@ -289,39 +314,6 @@ export default function EmployeesPage() {
           </table>
         </div>
       )}
-
-      <form className={styles.form} onSubmit={handleCreate}>
-        <div className={styles.formTitle}>新規社員追加</div>
-        <div className={styles.formGrid}>
-          <div className={styles.formGroup}>
-            <label>氏名 *</label>
-            <input type="text" value={formName} onChange={(e) => setFormName(e.target.value)} />
-          </div>
-          <div className={styles.formGroup}>
-            <label>メール *</label>
-            <input type="text" value={formEmail} onChange={(e) => setFormEmail(e.target.value)} />
-          </div>
-          <div className={styles.formGroup}>
-            <label>所属</label>
-            <input type="text" value={formDept} onChange={(e) => setFormDept(e.target.value)} />
-          </div>
-          <div className={styles.formGroup}>
-            <label>役職</label>
-            <input type="text" value={formPosition} onChange={(e) => setFormPosition(e.target.value)} />
-          </div>
-          <div className={styles.formGroup}>
-            <label>電話</label>
-            <input type="text" value={formPhone} onChange={(e) => setFormPhone(e.target.value)} />
-          </div>
-        </div>
-        <div className={styles.formActions}>
-          <button type="submit" className="primary" disabled={creating}>
-            {creating ? "追加中..." : "追加"}
-          </button>
-          {createMsg && <span className={styles.successMsg}>{createMsg}</span>}
-          {createErr && <span className={styles.errorMsg}>{createErr}</span>}
-        </div>
-      </form>
     </div>
   );
 }

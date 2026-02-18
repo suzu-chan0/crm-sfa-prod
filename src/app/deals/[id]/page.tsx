@@ -139,6 +139,7 @@ export default function DealDetailPage({
   const [editErr, setEditErr] = useState("");
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
 
   const calcExpectedAmount = useMemo(() => {
     const q = parseFloat(editForm.expectedQuantity);
@@ -209,6 +210,7 @@ export default function DealDetailPage({
         return;
       }
       setEditMsg("保存しました");
+      setIsEditing(false);
       fetchDeal();
       fetchPhaseHistory();
     } catch {
@@ -379,12 +381,6 @@ export default function DealDetailPage({
       {/* Summary cards */}
       <div className={styles.summaryRow}>
         <div className={styles.summaryCard}>
-          <div className={styles.summaryLabel}>見込金額</div>
-          <div className={styles.summaryValue}>
-            {deal.expectedAmount ? Number(deal.expectedAmount).toLocaleString() + "円" : "—"}
-          </div>
-        </div>
-        <div className={styles.summaryCard}>
           <div className={styles.summaryLabel}>最終活動日</div>
           <div className={styles.summaryValue}>
             {deal.lastActivityDate ? deal.lastActivityDate.slice(0, 10) : "—"}
@@ -404,55 +400,72 @@ export default function DealDetailPage({
       <div className={styles.twoColumn}>
         {/* LEFT COLUMN: Deal info + Activity */}
         <div className={styles.leftCol}>
-          {/* Overview */}
-          <div className={styles.grid}>
-            <div>
-              <div className={styles.fieldLabel}>顧客企業</div>
-              <div className={styles.fieldValue}>{deal.customerCompany?.name ?? "—"}</div>
-            </div>
-            <div>
-              <div className={styles.fieldLabel}>担当</div>
-              <div className={styles.fieldValue}>{deal.employee?.name ?? "—"}</div>
-            </div>
-            <div>
-              <div className={styles.fieldLabel}>成約確度</div>
-              <div className={styles.fieldValue}>{deal.probability != null ? `${deal.probability}%` : "—"}</div>
-            </div>
-            <div>
-              <div className={styles.fieldLabel}>重要度</div>
-              <div className={styles.fieldValue}>{deal.importance ? PRIORITY_LABEL[deal.importance] ?? deal.importance : "—"}</div>
-            </div>
-            <div>
-              <div className={styles.fieldLabel}>見込数量</div>
-              <div className={styles.fieldValue}>{deal.expectedQuantity ?? "—"}</div>
-            </div>
-            <div>
-              <div className={styles.fieldLabel}>想定単価</div>
-              <div className={styles.fieldValue}>{deal.expectedUnitPrice ?? "—"}</div>
-            </div>
-            <div>
-              <div className={styles.fieldLabel}>業界</div>
-              <div className={styles.fieldValue}>{deal.industry ?? "—"}</div>
-            </div>
-            <div>
-              <div className={styles.fieldLabel}>用途</div>
-              <div className={styles.fieldValue}>{deal.usage ?? "—"}</div>
-            </div>
-            <div>
-              <div className={styles.fieldLabel}>停滞理由</div>
-              <div className={styles.fieldValue}>{deal.stagnationReason ?? "—"}</div>
-            </div>
-            <div>
-              <div className={styles.fieldLabel}>更新日</div>
-              <div className={styles.fieldValue}>{deal.updatedAt.slice(0, 10)}</div>
-            </div>
-          </div>
-
-          {/* Edit form */}
+          {/* Overview / Edit toggle */}
           <div className={styles.section}>
             <div className={styles.sectionHeader}>
-              <h2 className={styles.sectionTitle}>案件情報の編集</h2>
+              <h2 className={styles.sectionTitle}>案件情報</h2>
+              {!isEditing && (
+                <button type="button" onClick={() => setIsEditing(true)}>編集</button>
+              )}
             </div>
+
+            {!isEditing ? (
+              /* Read-only view */
+              <div className={styles.grid}>
+                <div>
+                  <div className={styles.fieldLabel}>顧客企業</div>
+                  <div className={styles.fieldValue}>{deal.customerCompany?.name ?? "—"}</div>
+                </div>
+                <div>
+                  <div className={styles.fieldLabel}>担当</div>
+                  <div className={styles.fieldValue}>{deal.employee?.name ?? "—"}</div>
+                </div>
+                <div>
+                  <div className={styles.fieldLabel}>成約確度</div>
+                  <div className={styles.fieldValue}>{deal.probability != null ? `${deal.probability}%` : "—"}</div>
+                </div>
+                <div>
+                  <div className={styles.fieldLabel}>重要度</div>
+                  <div className={styles.fieldValue}>{deal.importance ? PRIORITY_LABEL[deal.importance] ?? deal.importance : "—"}</div>
+                </div>
+                <div>
+                  <div className={styles.fieldLabel}>見込数量</div>
+                  <div className={styles.fieldValue}>{deal.expectedQuantity ?? "—"}</div>
+                </div>
+                <div>
+                  <div className={styles.fieldLabel}>想定単価</div>
+                  <div className={styles.fieldValue}>{deal.expectedUnitPrice ?? "—"}</div>
+                </div>
+                <div>
+                  <div className={styles.fieldLabel}>見込金額</div>
+                  <div className={styles.fieldValue}>{deal.expectedAmount ? Number(deal.expectedAmount).toLocaleString() + "円" : "—"}</div>
+                </div>
+                <div>
+                  <div className={styles.fieldLabel}>業界</div>
+                  <div className={styles.fieldValue}>{deal.industry ?? "—"}</div>
+                </div>
+                <div>
+                  <div className={styles.fieldLabel}>用途</div>
+                  <div className={styles.fieldValue}>{deal.usage ?? "—"}</div>
+                </div>
+                <div>
+                  <div className={styles.fieldLabel}>停滞理由</div>
+                  <div className={styles.fieldValue}>{deal.stagnationReason ?? "—"}</div>
+                </div>
+                <div>
+                  <div className={styles.fieldLabel}>更新日</div>
+                  <div className={styles.fieldValue}>{deal.updatedAt.slice(0, 10)}</div>
+                </div>
+              </div>
+            ) : (
+              /* Edit form */
+              <div></div>
+            )}
+            {editMsg && <p className={styles.successMsg} style={{ marginTop: 8 }}>{editMsg}</p>}
+          </div>
+
+          {isEditing && (
+          <div className={styles.section}>
             <form onSubmit={submitEdit} className={styles.editForm}>
               <div className={styles.editGrid}>
                 <div className={styles.formGroup}>
@@ -518,14 +531,15 @@ export default function DealDetailPage({
                 <button type="submit" className="primary" disabled={saving}>
                   {saving ? "保存中..." : "保存"}
                 </button>
+                <button type="button" onClick={() => { setIsEditing(false); setEditErr(""); }}>キャンセル</button>
                 <button type="button" className={styles.deleteBtn} onClick={deleteDeal} disabled={deleting}>
                   {deleting ? "削除中..." : "この案件を削除"}
                 </button>
-                {editMsg && <span className={styles.successMsg}>{editMsg}</span>}
                 {editErr && <span className={styles.errorMsg}>{editErr}</span>}
               </div>
             </form>
           </div>
+          )}
 
           {/* Phase change history */}
           {phaseHistory.length > 0 && (

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, FormEvent } from "react";
 import styles from "./page.module.css";
+import { RowActionMenu } from "@/app/components/RowActionMenu";
 
 type Company = {
   id: string;
@@ -22,6 +23,7 @@ export default function CompaniesPage() {
   const [searchQ, setSearchQ] = useState("");
 
   // Create form
+  const [showCreate, setShowCreate] = useState(false);
   const [formName, setFormName] = useState("");
   const [formAddress, setFormAddress] = useState("");
   const [formIndustry, setFormIndustry] = useState("");
@@ -34,6 +36,7 @@ export default function CompaniesPage() {
   const [editId, setEditId] = useState<string | null>(null);
   const [editData, setEditData] = useState({ name: "", address: "", industry: "", usage: "" });
   const [editErr, setEditErr] = useState("");
+
 
   const fetchCompanies = useCallback(() => {
     setLoading(true);
@@ -58,6 +61,7 @@ export default function CompaniesPage() {
     const t = setTimeout(() => setSearchQ(q), 300);
     return () => clearTimeout(t);
   }, [q]);
+
 
   const handleCreate = async (e: FormEvent) => {
     e.preventDefault();
@@ -160,8 +164,49 @@ export default function CompaniesPage() {
     <div>
       <div className={styles.header}>
         <h1 className={styles.title}>顧客企業一覧</h1>
-        <span className={styles.totalCount}>{companies.length}件</span>
+        <div className={styles.headerRight}>
+          <span className={styles.totalCount}>{companies.length}件</span>
+          <button
+            type="button"
+            className="primary"
+            onClick={() => { setShowCreate(!showCreate); setCreateErr(""); setCreateMsg(""); }}
+          >
+            {showCreate ? "閉じる" : "+追加"}
+          </button>
+        </div>
       </div>
+
+      {/* Create form (expandable) */}
+      {showCreate && (
+        <form className={styles.form} onSubmit={handleCreate}>
+          <div className={styles.formGrid}>
+            <div className={styles.formGroup}>
+              <label>企業名 *</label>
+              <input type="text" value={formName} onChange={(e) => setFormName(e.target.value)} />
+            </div>
+            <div className={styles.formGroup}>
+              <label>住所</label>
+              <input type="text" value={formAddress} onChange={(e) => setFormAddress(e.target.value)} />
+            </div>
+            <div className={styles.formGroup}>
+              <label>業界</label>
+              <input type="text" value={formIndustry} onChange={(e) => setFormIndustry(e.target.value)} />
+            </div>
+            <div className={styles.formGroup}>
+              <label>用途</label>
+              <input type="text" value={formUsage} onChange={(e) => setFormUsage(e.target.value)} />
+            </div>
+          </div>
+          <div className={styles.formActions}>
+            <button type="submit" className="primary" disabled={creating}>
+              {creating ? "追加中..." : "追加"}
+            </button>
+            <button type="button" onClick={() => setShowCreate(false)}>キャンセル</button>
+            {createMsg && <span className={styles.successMsg}>{createMsg}</span>}
+            {createErr && <span className={styles.errorMsg}>{createErr}</span>}
+          </div>
+        </form>
+      )}
 
       <div className={styles.filters}>
         <div className={styles.filterGroup}>
@@ -189,7 +234,7 @@ export default function CompaniesPage() {
                 <th>業界</th>
                 <th>用途</th>
                 <th>登録日</th>
-                <th style={{ width: 100 }}></th>
+                <th style={{ width: 48 }}></th>
               </tr>
             </thead>
             <tbody>
@@ -235,16 +280,18 @@ export default function CompaniesPage() {
                   </tr>
                 ) : (
                   <tr key={c.id}>
-                    <td>{c.name}</td>
-                    <td>{c.address || "—"}</td>
-                    <td>{c.industry || "—"}</td>
-                    <td>{c.usage || "—"}</td>
-                    <td>{c.createdAt.slice(0, 10)}</td>
+                    <td className={styles.primaryCell}>{c.name}</td>
+                    <td className={styles.secondaryCell}>{c.address || "—"}</td>
+                    <td className={styles.secondaryCell}>{c.industry || "—"}</td>
+                    <td className={styles.secondaryCell}>{c.usage || "—"}</td>
+                    <td className={styles.secondaryCell}>{c.createdAt.slice(0, 10)}</td>
                     <td>
-                      <div className={styles.rowActions}>
-                        <button className={styles.editBtn} onClick={() => startEdit(c)}>編集</button>
-                        <button className={styles.deleteBtn} onClick={() => handleDelete(c.id, c.name)}>削除</button>
-                      </div>
+                      <RowActionMenu
+                        actions={[
+                          { label: "編集", onClick: () => startEdit(c) },
+                          { label: "削除", danger: true, onClick: () => handleDelete(c.id, c.name) },
+                        ]}
+                      />
                     </td>
                   </tr>
                 )
@@ -253,35 +300,6 @@ export default function CompaniesPage() {
           </table>
         </div>
       )}
-
-      <form className={styles.form} onSubmit={handleCreate}>
-        <div className={styles.formTitle}>新規企業追加</div>
-        <div className={styles.formGrid}>
-          <div className={styles.formGroup}>
-            <label>企業名 *</label>
-            <input type="text" value={formName} onChange={(e) => setFormName(e.target.value)} />
-          </div>
-          <div className={styles.formGroup}>
-            <label>住所</label>
-            <input type="text" value={formAddress} onChange={(e) => setFormAddress(e.target.value)} />
-          </div>
-          <div className={styles.formGroup}>
-            <label>業界</label>
-            <input type="text" value={formIndustry} onChange={(e) => setFormIndustry(e.target.value)} />
-          </div>
-          <div className={styles.formGroup}>
-            <label>用途</label>
-            <input type="text" value={formUsage} onChange={(e) => setFormUsage(e.target.value)} />
-          </div>
-        </div>
-        <div className={styles.formActions}>
-          <button type="submit" className="primary" disabled={creating}>
-            {creating ? "追加中..." : "追加"}
-          </button>
-          {createMsg && <span className={styles.successMsg}>{createMsg}</span>}
-          {createErr && <span className={styles.errorMsg}>{createErr}</span>}
-        </div>
-      </form>
     </div>
   );
 }
