@@ -2,12 +2,12 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: 24px;
 }
 
 .title {
-  font-size: 18px;
-  font-weight: 700;
+  font-size: 20px;
+  font-weight: 600;
 }
 
 .headerRight {
@@ -48,39 +48,39 @@
 }
 
 .summaryRow {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-bottom: 16px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
 }
 
 .summaryCard {
-  flex: 1;
-  min-width: 90px;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 6px;
-  padding: 10px 12px;
+  border-radius: 8px;
+  padding: 12px 16px;
   text-align: center;
 }
 
 .summaryLabel {
-  font-size: 10px;
+  font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   color: var(--color-text-secondary);
-  margin-bottom: 2px;
+  margin-bottom: 4px;
 }
 
 .summaryValue {
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 700;
 }
 
-.summarySubValue {
-  font-size: 11px;
-  color: var(--color-text-secondary);
-  margin-top: 2px;
+.summaryAlert {
+  border-color: var(--color-error);
+}
+
+.summaryAlert .summaryValue {
+  color: var(--color-error);
 }
 
 .filters {
@@ -92,7 +92,7 @@
   border: 1px solid var(--color-border);
   border-radius: 6px;
   padding: 12px 16px;
-  margin-bottom: 16px;
+  margin-bottom: 24px;
 }
 
 .filterGroup {
@@ -216,30 +216,28 @@
 
 /* Kanban */
 .kanbanBoard {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
   gap: 12px;
   overflow-x: auto;
   padding-bottom: 8px;
 }
 
 .kanbanColumn {
-  flex: 0 0 220px;
+  min-width: 160px;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 6px;
+  border-radius: 8px;
   display: flex;
   flex-direction: column;
   max-height: 70vh;
 }
 
 .kanbanColumnHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
   padding: 10px 12px;
   border-bottom: 1px solid var(--color-border);
-  background: var(--color-surface);
-  border-radius: 6px 6px 0 0;
+  background: #fafaf9;
+  border-radius: 8px 8px 0 0;
 }
 
 .kanbanColumnTitle {
@@ -253,6 +251,13 @@
   background: var(--color-border);
   border-radius: 10px;
   padding: 1px 8px;
+  margin-left: 6px;
+}
+
+.kanbanColumnAmount {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  margin-top: 2px;
 }
 
 .kanbanColumnBody {
@@ -268,7 +273,7 @@
   display: block;
   background: #fff;
   border: 1px solid var(--color-border);
-  border-radius: 4px;
+  border-radius: 6px;
   padding: 10px 12px;
   text-decoration: none;
   color: inherit;
@@ -276,27 +281,45 @@
 }
 
 .kanbanCard:hover {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   border-color: var(--color-primary);
+  text-decoration: none;
 }
 
 .kanbanCardTitle {
   font-size: 13px;
   font-weight: 600;
   color: var(--color-primary);
-  margin-bottom: 4px;
+  margin-bottom: 2px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .kanbanCardMeta {
   font-size: 11px;
   color: var(--color-text-secondary);
   line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.kanbanCardBottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 4px;
 }
 
 .kanbanCardAmount {
   font-size: 12px;
   font-weight: 600;
-  margin-top: 4px;
+}
+
+.kanbanCardProb {
+  font-size: 11px;
+  color: var(--color-text-secondary);
 }
 
 .kanbanEmpty {
@@ -306,23 +329,13 @@
   padding: 16px 0;
 }
 
-/* Filter spacer + Add button */
-.filterSpacer {
-  flex: 1;
-}
-
-.addBtn {
-  align-self: flex-end;
-  white-space: nowrap;
-}
-
 /* Create form */
 .createForm {
   background: var(--color-surface);
   border: 1px solid var(--color-primary);
-  border-radius: 6px;
+  border-radius: 8px;
   padding: 16px 20px;
-  margin-bottom: 16px;
+  margin-bottom: 24px;
 }
 
 .createGrid {

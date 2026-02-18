@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, FormEvent } from "react";
 import styles from "./page.module.css";
+import { RowActionMenu } from "@/app/components/RowActionMenu";
 
 type Company = { id: string; name: string };
 
@@ -31,6 +32,7 @@ export default function ContactsPage() {
   const [searchQ, setSearchQ] = useState("");
 
   // Create form
+  const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({
     name: "",
     customerCompanyId: "",
@@ -52,6 +54,7 @@ export default function ContactsPage() {
     email: "",
   });
   const [editErr, setEditErr] = useState("");
+
 
   useEffect(() => {
     fetch("/api/companies")
@@ -93,6 +96,7 @@ export default function ContactsPage() {
     }, 300);
     return () => clearTimeout(t);
   }, [q]);
+
 
   const submitContact = async (e: FormEvent) => {
     e.preventDefault();
@@ -179,8 +183,88 @@ export default function ContactsPage() {
     <div>
       <div className={styles.header}>
         <h1 className={styles.title}>顧客担当者一覧</h1>
-        <span className={styles.totalCount}>{total}件</span>
+        <div className={styles.headerRight}>
+          <span className={styles.totalCount}>{total}件</span>
+          <button
+            type="button"
+            className="primary"
+            onClick={() => { setShowCreate(!showCreate); setFormErr(""); setFormMsg(""); }}
+          >
+            {showCreate ? "閉じる" : "+追加"}
+          </button>
+        </div>
       </div>
+
+      {/* Create form (expandable) */}
+      {showCreate && (
+        <form onSubmit={submitContact} className={styles.form}>
+          <div className={styles.formGrid}>
+            <div className={styles.formGroup}>
+              <label>氏名 *</label>
+              <input
+                type="text"
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                placeholder="山田太郎"
+              />
+            </div>
+            <div className={styles.formGroup}>
+              <label>顧客企業 *</label>
+              <select
+                value={form.customerCompanyId}
+                onChange={(e) => setForm({ ...form, customerCompanyId: e.target.value })}
+              >
+                <option value="">選択...</option>
+                {companies.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className={styles.formGroup}>
+              <label>部署</label>
+              <input
+                type="text"
+                value={form.department}
+                onChange={(e) => setForm({ ...form, department: e.target.value })}
+                placeholder="営業部"
+              />
+            </div>
+            <div className={styles.formGroup}>
+              <label>役職</label>
+              <input
+                type="text"
+                value={form.position}
+                onChange={(e) => setForm({ ...form, position: e.target.value })}
+                placeholder="課長"
+              />
+            </div>
+            <div className={styles.formGroup}>
+              <label>電話</label>
+              <input
+                type="text"
+                value={form.phone}
+                onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                placeholder="03-1234-5678"
+              />
+            </div>
+            <div className={styles.formGroup}>
+              <label>メール</label>
+              <input
+                type="text"
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                placeholder="yamada@example.com"
+              />
+            </div>
+          </div>
+          <div className={styles.formActions}>
+            <button type="submit" className="primary">登録</button>
+            <button type="button" onClick={() => setShowCreate(false)}>キャンセル</button>
+            {formMsg && <span className={styles.successMsg}>{formMsg}</span>}
+            {formErr && <span className={styles.errorMsg}>{formErr}</span>}
+          </div>
+        </form>
+      )}
 
       <div className={styles.filters}>
         <div className={styles.filterGroup}>
@@ -218,7 +302,7 @@ export default function ContactsPage() {
                 <th>役職</th>
                 <th>電話</th>
                 <th>メール</th>
-                <th style={{ width: 100 }}></th>
+                <th style={{ width: 48 }}></th>
               </tr>
             </thead>
             <tbody>
@@ -226,45 +310,20 @@ export default function ContactsPage() {
                 editingId === c.id ? (
                   <tr key={c.id} className={styles.editRow}>
                     <td>
-                      <input
-                        type="text"
-                        value={editData.name}
-                        onChange={(e) => setEditData({ ...editData, name: e.target.value })}
-                        className={styles.editInput}
-                      />
+                      <input type="text" value={editData.name} onChange={(e) => setEditData({ ...editData, name: e.target.value })} className={styles.editInput} />
                     </td>
-                    <td>{c.customerCompany?.name ?? "—"}</td>
+                    <td className={styles.secondaryCell}>{c.customerCompany?.name ?? "—"}</td>
                     <td>
-                      <input
-                        type="text"
-                        value={editData.department}
-                        onChange={(e) => setEditData({ ...editData, department: e.target.value })}
-                        className={styles.editInput}
-                      />
+                      <input type="text" value={editData.department} onChange={(e) => setEditData({ ...editData, department: e.target.value })} className={styles.editInput} />
                     </td>
                     <td>
-                      <input
-                        type="text"
-                        value={editData.position}
-                        onChange={(e) => setEditData({ ...editData, position: e.target.value })}
-                        className={styles.editInput}
-                      />
+                      <input type="text" value={editData.position} onChange={(e) => setEditData({ ...editData, position: e.target.value })} className={styles.editInput} />
                     </td>
                     <td>
-                      <input
-                        type="text"
-                        value={editData.phone}
-                        onChange={(e) => setEditData({ ...editData, phone: e.target.value })}
-                        className={styles.editInput}
-                      />
+                      <input type="text" value={editData.phone} onChange={(e) => setEditData({ ...editData, phone: e.target.value })} className={styles.editInput} />
                     </td>
                     <td>
-                      <input
-                        type="text"
-                        value={editData.email}
-                        onChange={(e) => setEditData({ ...editData, email: e.target.value })}
-                        className={styles.editInput}
-                      />
+                      <input type="text" value={editData.email} onChange={(e) => setEditData({ ...editData, email: e.target.value })} className={styles.editInput} />
                     </td>
                     <td>
                       <div className={styles.editActions}>
@@ -276,29 +335,19 @@ export default function ContactsPage() {
                   </tr>
                 ) : (
                   <tr key={c.id}>
-                    <td>{c.name}</td>
-                    <td>{c.customerCompany?.name ?? "—"}</td>
-                    <td>{c.department ?? "—"}</td>
-                    <td>{c.position ?? "—"}</td>
-                    <td>{c.phone ?? "—"}</td>
-                    <td>{c.email ?? "—"}</td>
+                    <td className={styles.primaryCell}>{c.name}</td>
+                    <td className={styles.secondaryCell}>{c.customerCompany?.name ?? "—"}</td>
+                    <td className={styles.secondaryCell}>{c.department ?? "—"}</td>
+                    <td className={styles.secondaryCell}>{c.position ?? "—"}</td>
+                    <td className={styles.secondaryCell}>{c.phone ?? "—"}</td>
+                    <td className={styles.secondaryCell}>{c.email ?? "—"}</td>
                     <td>
-                      <div className={styles.rowActions}>
-                        <button
-                          type="button"
-                          className={styles.editBtn}
-                          onClick={() => startEdit(c)}
-                        >
-                          編集
-                        </button>
-                        <button
-                          type="button"
-                          className={styles.deleteBtn}
-                          onClick={() => deleteContact(c.id, c.name)}
-                        >
-                          削除
-                        </button>
-                      </div>
+                      <RowActionMenu
+                        actions={[
+                          { label: "編集", onClick: () => startEdit(c) },
+                          { label: "削除", danger: true, onClick: () => deleteContact(c.id, c.name) },
+                        ]}
+                      />
                     </td>
                   </tr>
                 )
@@ -315,74 +364,6 @@ export default function ContactsPage() {
           <button disabled={page >= totalPages} onClick={() => setPage(page + 1)}>次へ</button>
         </div>
       )}
-
-      <form onSubmit={submitContact} className={styles.form}>
-        <h3 className={styles.formTitle}>新規担当者登録</h3>
-        <div className={styles.formGrid}>
-          <div className={styles.formGroup}>
-            <label>氏名 *</label>
-            <input
-              type="text"
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-              placeholder="山田太郎"
-            />
-          </div>
-          <div className={styles.formGroup}>
-            <label>顧客企業 *</label>
-            <select
-              value={form.customerCompanyId}
-              onChange={(e) => setForm({ ...form, customerCompanyId: e.target.value })}
-            >
-              <option value="">選択...</option>
-              {companies.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
-          </div>
-          <div className={styles.formGroup}>
-            <label>部署</label>
-            <input
-              type="text"
-              value={form.department}
-              onChange={(e) => setForm({ ...form, department: e.target.value })}
-              placeholder="営業部"
-            />
-          </div>
-          <div className={styles.formGroup}>
-            <label>役職</label>
-            <input
-              type="text"
-              value={form.position}
-              onChange={(e) => setForm({ ...form, position: e.target.value })}
-              placeholder="課長"
-            />
-          </div>
-          <div className={styles.formGroup}>
-            <label>電話</label>
-            <input
-              type="text"
-              value={form.phone}
-              onChange={(e) => setForm({ ...form, phone: e.target.value })}
-              placeholder="03-1234-5678"
-            />
-          </div>
-          <div className={styles.formGroup}>
-            <label>メール</label>
-            <input
-              type="text"
-              value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
-              placeholder="yamada@example.com"
-            />
-          </div>
-        </div>
-        <div className={styles.formActions}>
-          <button type="submit" className="primary">登録</button>
-          {formMsg && <span className={styles.successMsg}>{formMsg}</span>}
-          {formErr && <span className={styles.errorMsg}>{formErr}</span>}
-        </div>
-      </form>
     </div>
   );
 }

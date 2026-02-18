@@ -2,12 +2,18 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: 24px;
 }
 
 .title {
-  font-size: 18px;
-  font-weight: 700;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .totalCount {
@@ -22,9 +28,9 @@
   align-items: flex-end;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 6px;
+  border-radius: 8px;
   padding: 12px 16px;
-  margin-bottom: 16px;
+  margin-bottom: 24px;
 }
 
 .filterGroup {
@@ -42,23 +48,16 @@
 .tableWrap {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 6px;
+  border-radius: 8px;
   overflow: hidden;
-  margin-bottom: 16px;
 }
 
 .form {
   background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: 6px;
+  border: 1px solid var(--color-primary);
+  border-radius: 8px;
   padding: 16px 20px;
-  margin-top: 16px;
-}
-
-.formTitle {
-  font-size: 14px;
-  font-weight: 700;
-  margin-bottom: 12px;
+  margin-bottom: 24px;
 }
 
 .formGrid {
@@ -114,37 +113,16 @@
   padding: 20px;
 }
 
-.rowActions {
-  display: flex;
-  gap: 6px;
+/* Primary & secondary cell styles */
+.primaryCell {
+  font-weight: 600;
 }
 
-.editBtn {
-  background: none;
-  border: none;
-  color: var(--color-primary);
-  cursor: pointer;
-  font-size: 12px;
-  padding: 2px 6px;
+.secondaryCell {
+  color: var(--color-text-secondary);
 }
 
-.editBtn:hover {
-  text-decoration: underline;
-}
-
-.deleteBtn {
-  background: none;
-  border: none;
-  color: var(--color-error);
-  cursor: pointer;
-  font-size: 12px;
-  padding: 2px 6px;
-}
-
-.deleteBtn:hover {
-  text-decoration: underline;
-}
-
+/* Inline edit */
 .editRow {
   background: var(--color-surface-alt, #f8f9fb);
 }

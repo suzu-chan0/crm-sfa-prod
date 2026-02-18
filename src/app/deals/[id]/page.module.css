@@ -6,8 +6,8 @@
 
 .title {
   font-size: 20px;
-  font-weight: 700;
-  margin-bottom: 16px;
+  font-weight: 600;
+  margin-bottom: 24px;
 }
 
 .phaseBadge {
@@ -92,16 +92,16 @@
 
 /* Summary row */
 .summaryRow {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: 12px;
   margin-bottom: 24px;
 }
 
 .summaryCard {
-  flex: 1;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 6px;
+  border-radius: 8px;
   padding: 12px 16px;
   text-align: center;
 }

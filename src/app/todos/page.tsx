@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
 import styles from "./page.module.css";
 
@@ -77,6 +77,14 @@ export default function TodosPage() {
   // Sort
   const [sortBy, setSortBy] = useState<SortKey>("createdAt");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+
+  // Advanced filter toggle
+  const [showAdvanced, setShowAdvanced] = useState(false);
+
+  const hasAdvancedFilters = useMemo(
+    () => !!(priorityFilter || assigneeFilter || companyFilter || dealPhaseFilter),
+    [priorityFilter, assigneeFilter, companyFilter, dealPhaseFilter],
+  );
 
   useEffect(() => {
     fetch("/api/employees").then((r) => r.ok ? r.json() : []).then(setEmployees).catch(() => {});
@@ -164,18 +172,11 @@ export default function TodosPage() {
         <span className={styles.totalCount}>{total}件</span>
       </div>
 
+      {/* Basic filters */}
       <div className={styles.filters}>
         <div className={styles.filterGroup}>
           <label>キーワード</label>
           <input type="text" value={q} onChange={(e) => setQ(e.target.value)} placeholder="件名・説明" />
-        </div>
-        <div className={styles.filterGroup}>
-          <label>期限From</label>
-          <input type="date" value={dueDateFrom} onChange={(e) => { setDueDateFrom(e.target.value); resetPage(); }} />
-        </div>
-        <div className={styles.filterGroup}>
-          <label>期限To</label>
-          <input type="date" value={dueDateTo} onChange={(e) => { setDueDateTo(e.target.value); resetPage(); }} />
         </div>
         <div className={styles.filterGroup}>
           <label>ステータス</label>
@@ -187,41 +188,62 @@ export default function TodosPage() {
           </select>
         </div>
         <div className={styles.filterGroup}>
-          <label>優先度</label>
-          <select value={priorityFilter} onChange={(e) => { setPriorityFilter(e.target.value); resetPage(); }}>
-            <option value="">すべて</option>
-            <option value="HIGH">高</option>
-            <option value="MEDIUM">中</option>
-            <option value="LOW">低</option>
-          </select>
+          <label>期限From</label>
+          <input type="date" value={dueDateFrom} onChange={(e) => { setDueDateFrom(e.target.value); resetPage(); }} />
         </div>
         <div className={styles.filterGroup}>
-          <label>担当</label>
-          <select value={assigneeFilter} onChange={(e) => { setAssigneeFilter(e.target.value); resetPage(); }}>
-            <option value="">すべて</option>
-            {employees.map((emp) => (
-              <option key={emp.id} value={emp.id}>{emp.name}</option>
-            ))}
-          </select>
+          <label>期限To</label>
+          <input type="date" value={dueDateTo} onChange={(e) => { setDueDateTo(e.target.value); resetPage(); }} />
         </div>
-        <div className={styles.filterGroup}>
-          <label>顧客企業</label>
-          <select value={companyFilter} onChange={(e) => { setCompanyFilter(e.target.value); resetPage(); }}>
-            <option value="">すべて</option>
-            {companies.map((c) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
-            ))}
-          </select>
-        </div>
-        <div className={styles.filterGroup}>
-          <label>案件フェーズ</label>
-          <select value={dealPhaseFilter} onChange={(e) => { setDealPhaseFilter(e.target.value); resetPage(); }}>
-            {PHASES.map((p) => (
-              <option key={p.key} value={p.key}>{p.label}</option>
-            ))}
-          </select>
-        </div>
+        <button
+          type="button"
+          className={styles.advancedToggle}
+          onClick={() => setShowAdvanced(!showAdvanced)}
+        >
+          {showAdvanced ? "詳細フィルタを閉じる" : `詳細フィルタ${hasAdvancedFilters ? " (適用中)" : ""}`}
+        </button>
       </div>
+
+      {/* Advanced filters */}
+      {showAdvanced && (
+        <div className={styles.advancedFilters}>
+          <div className={styles.filterGroup}>
+            <label>優先度</label>
+            <select value={priorityFilter} onChange={(e) => { setPriorityFilter(e.target.value); resetPage(); }}>
+              <option value="">すべて</option>
+              <option value="HIGH">高</option>
+              <option value="MEDIUM">中</option>
+              <option value="LOW">低</option>
+            </select>
+          </div>
+          <div className={styles.filterGroup}>
+            <label>担当</label>
+            <select value={assigneeFilter} onChange={(e) => { setAssigneeFilter(e.target.value); resetPage(); }}>
+              <option value="">すべて</option>
+              {employees.map((emp) => (
+                <option key={emp.id} value={emp.id}>{emp.name}</option>
+              ))}
+            </select>
+          </div>
+          <div className={styles.filterGroup}>
+            <label>顧客企業</label>
+            <select value={companyFilter} onChange={(e) => { setCompanyFilter(e.target.value); resetPage(); }}>
+              <option value="">すべて</option>
+              {companies.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+          <div className={styles.filterGroup}>
+            <label>案件フェーズ</label>
+            <select value={dealPhaseFilter} onChange={(e) => { setDealPhaseFilter(e.target.value); resetPage(); }}>
+              {PHASES.map((p) => (
+                <option key={p.key} value={p.key}>{p.label}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      )}
 
       {loading ? (
         <p className={styles.loading}>読み込み中...</p>
@@ -237,17 +259,14 @@ export default function TodosPage() {
                   期限{sortIndicator("dueDate")}
                 </th>
                 <th>ステータス</th>
+                <th>担当</th>
                 <th className={styles.sortable} onClick={() => handleSort("priority")}>
                   優先度{sortIndicator("priority")}
                 </th>
                 <th>種別</th>
-                <th>担当</th>
                 <th>案件</th>
                 <th>案件フェーズ</th>
                 <th>顧客企業</th>
-                <th className={styles.sortable} onClick={() => handleSort("updatedAt")}>
-                  更新日{sortIndicator("updatedAt")}
-                </th>
               </tr>
             </thead>
             <tbody>
@@ -260,22 +279,22 @@ export default function TodosPage() {
                         {t.title}
                       </Link>
                     </td>
-                    <td className={isOverdue ? styles.overdue : ""}>
+                    <td>
                       {t.dueDate ? t.dueDate.slice(0, 10) : "—"}
-                      {isOverdue && " 期限超過"}
+                      {isOverdue && <span className={styles.overdueBadge}>期限超過</span>}
                     </td>
                     <td>
                       <span className={statusClass(t.status)}>
                         {STATUS_LABEL[t.status] ?? t.status}
                       </span>
                     </td>
+                    <td>{t.assignee?.name ?? "—"}</td>
                     <td>
                       <span className={priorityClass(t.priority)}>
                         {PRIORITY_LABEL[t.priority] ?? t.priority}
                       </span>
                     </td>
-                    <td>{t.type === "NEXT_ACTION" ? "ネクストアクション" : "TODO"}</td>
-                    <td>{t.assignee?.name ?? "—"}</td>
+                    <td>{t.type === "NEXT_ACTION" ? "NA" : "TODO"}</td>
                     <td>
                       {t.deal ? (
                         <Link href={`/deals/${t.deal.id}`} className={styles.todoLink}>
@@ -283,9 +302,8 @@ export default function TodosPage() {
                         </Link>
                       ) : "—"}
                     </td>
-                    <td>{t.deal ? (PHASE_LABEL[t.deal.phase] ?? t.deal.phase) : "—"}</td>
-                    <td>{t.customerCompany?.name ?? "—"}</td>
-                    <td>{t.dueDate ? t.dueDate.slice(0, 10) : "—"}</td>
+                    <td className={styles.secondaryCell}>{t.deal ? (PHASE_LABEL[t.deal.phase] ?? t.deal.phase) : "—"}</td>
+                    <td className={styles.secondaryCell}>{t.customerCompany?.name ?? "—"}</td>
                   </tr>
                 );
               })}
