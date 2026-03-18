@@ -440,3 +440,74 @@
   color: var(--color-text-secondary);
   font-size: 12px;
 }
+
+/* ---- Section header action group (right side) ---- */
+.sectionHeaderActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ---- Print button ---- */
+.printBtn {
+  font-size: 12px;
+  padding: 4px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.printBtn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+/* ---- Proposal output section ---- */
+.proposalGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.proposalCard {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 14px 16px;
+}
+
+.proposalCardLabel {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--color-text-secondary);
+  margin-bottom: 6px;
+}
+
+.proposalCardContent {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--color-text);
+}
+
+/* ---- Print control ----
+ * .printHidden: 画面では通常表示。@media print でのみ非表示。
+ * page.tsx 内の各要素に明示的に付与して制御する。
+ * nav / header (レイアウト外) はこのファイルでは制御しない。
+ */
+.printHidden { /* hidden in @media print below; no screen-side style */ }
+
+@media print {
+  .printHidden {
+    display: none !important;
+  }
+
+  /* 右列が非表示になるため 1カラムに展開 */
+  .twoColumn {
+    display: block !important;
+  }
+}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo, FormEvent } from "react";
+import { useState, useEffect, useCallback, useMemo, FormEvent, useRef, ChangeEvent } from "react";
 import Link from "next/link";
 import styles from "./page.module.css";
 
@@ -32,6 +32,9 @@ type Summary = {
 const KANBAN_PHASES = [
   "MEETING", "SAMPLE_PROVIDED", "INITIAL_EVAL", "FULL_EVAL", "WON", "LOST",
 ];
+
+/** カンバン上でフェーズ移動ボタンを表示する対象（WON / LOST は終端のため除く）*/
+const PROGRESSIVE_PHASES = ["MEETING", "SAMPLE_PROVIDED", "INITIAL_EVAL", "FULL_EVAL"];
 
 const PHASE_LABEL: Record<string, string> = {
   MEETING: "打合せ",
@@ -83,6 +86,22 @@ export default function DealsPage() {
   const [createForm, setCreateForm] = useState(INITIAL_CREATE_FORM);
   const [creating, setCreating] = useState(false);
   const [createErr, setCreateErr] = useState("");
+
+  // Phase move
+  const [movingId, setMovingId] = useState<string | null>(null);
+  const [moveErr, setMoveErr] = useState("");
+
+  // D&D state
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [draggingOverPhase, setDraggingOverPhase] = useState<string | null>(null);
+
+  // Attach files (UI only – not uploaded)
+  const [createFiles, setCreateFiles] = useState<File[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const handleCreateFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files) return;
+    setCreateFiles(Array.from(e.target.files));
+  };
 
   useEffect(() => {
     fetch("/api/employees")
@@ -188,6 +207,8 @@ export default function DealsPage() {
         throw new Error(d.error || `${res.status}`);
       }
       setCreateForm(INITIAL_CREATE_FORM);
+      setCreateFiles([]);
+      if (fileInputRef.current) fileInputRef.current.value = "";
       setShowCreate(false);
       fetchKanban();
       // Refresh summary too
@@ -201,6 +222,31 @@ export default function DealsPage() {
       setCreating(false);
     }
   };
+
+  const movePhase = useCallback(
+    async (dealId: string, newPhase: string) => {
+      setMovingId(dealId);
+      setMoveErr("");
+      try {
+        const res = await fetch(`/api/deals/${dealId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ phase: newPhase }),
+        });
+        if (!res.ok) {
+          const d = await res.json();
+          setMoveErr(d.error ?? "フェーズ更新に失敗しました");
+          return;
+        }
+        fetchKanban();
+      } catch {
+        setMoveErr("通信エラーが発生しました");
+      } finally {
+        setMovingId(null);
+      }
+    },
+    [fetchKanban],
+  );
 
   const overdueTodoTotal = useMemo(
     () => kanbanDeals.reduce((sum, d) => sum + d.overdueTodoCount, 0),
@@ -405,13 +451,54 @@ export default function DealsPage() {
             <button type="submit" className="primary" disabled={creating}>
               {creating ? "登録中..." : "登録"}
             </button>
-            <button type="button" onClick={() => setShowCreate(false)}>キャンセル</button>
+            <button
+              type="button"
+              onClick={() => {
+                setShowCreate(false);
+                setCreateFiles([]);
+                if (fileInputRef.current) fileInputRef.current.value = "";
+              }}
+            >
+              キャンセル
+            </button>
+            <button
+              type="button"
+              className={styles.attachBtn}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              添付
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              style={{ display: "none" }}
+              onChange={handleCreateFileChange}
+            />
             {createErr && <span className={styles.createErr}>{createErr}</span>}
           </div>
+          {createFiles.length > 0 && (
+            <div className={styles.fileList}>
+              {createFiles.map((file) => {
+                const tag = file.type.startsWith("image/")
+                  ? "画像"
+                  : file.type === "application/pdf"
+                  ? "PDF"
+                  : "その他";
+                return (
+                  <span key={file.name} className={styles.fileItem}>
+                    <span className={styles.fileTag}>{tag}</span>
+                    {file.name}
+                  </span>
+                );
+              })}
+            </div>
+          )}
         </form>
       )}
 
       {/* Kanban view */}
+      {moveErr && <p className={styles.moveErr}>{moveErr}</p>}
       {kanbanLoading ? (
         <p className={styles.loading}>読み込み中...</p>
       ) : (
@@ -427,32 +514,78 @@ export default function DealsPage() {
                   <div className={styles.kanbanColumnAmount}>{fmt(columnAmounts[ph])}円</div>
                 )}
               </div>
-              <div className={styles.kanbanColumnBody}>
-                {kanbanColumns[ph].map((deal) => (
-                  <Link
-                    key={deal.id}
-                    href={`/deals/${deal.id}`}
-                    className={styles.kanbanCard}
-                  >
-                    <div className={styles.kanbanCardTitle}>
-                      {deal.name}
-                      {deal.overdueTodoCount > 0 && (
-                        <span className={styles.overdueBadge} title={`期限超過TODO: ${deal.overdueTodoCount}件`}>!</span>
+              <div
+                className={`${styles.kanbanColumnBody} ${draggingOverPhase === ph ? styles.kanbanColumnBodyDragOver : ""}`}
+                onDragOver={(e) => { e.preventDefault(); setDraggingOverPhase(ph); }}
+                onDragLeave={(e) => {
+                  if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                    setDraggingOverPhase(null);
+                  }
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  let dealId =
+                    e.dataTransfer.getData("application/x-deal-id") ||
+                    e.dataTransfer.getData("text/plain") ||
+                    e.dataTransfer.getData("dealId");
+                  if (dealId.startsWith("http://") || dealId.startsWith("https://")) {
+                    dealId = dealId.split("/").pop() || "";
+                  }
+                  const dragged = kanbanDeals.find((d) => d.id === dealId);
+                  if (dealId && dragged && dragged.phase !== ph) movePhase(dealId, ph);
+                  setDraggingId(null);
+                  setDraggingOverPhase(null);
+                }}
+              >
+                {kanbanColumns[ph].map((deal) => {
+                  const isDraggable = PROGRESSIVE_PHASES.includes(deal.phase);
+                  const isDragging = draggingId === deal.id;
+                  return (
+                    <div
+                      key={deal.id}
+                      className={`${styles.kanbanCard} ${isDragging ? styles.kanbanCardDragging : ""}`}
+                    >
+                      {isDraggable && (
+                        <div
+                          className={styles.dragHandle}
+                          draggable
+                          onDragStart={(e) => {
+                            e.dataTransfer.setData("application/x-deal-id", deal.id);
+                            e.dataTransfer.setData("text/plain", deal.id);
+                            e.dataTransfer.setData("dealId", deal.id);
+                            e.dataTransfer.effectAllowed = "move";
+                            setDraggingId(deal.id);
+                          }}
+                          onDragEnd={() => {
+                            setDraggingId(null);
+                            setDraggingOverPhase(null);
+                          }}
+                        >
+                          ⠿
+                        </div>
                       )}
+                      <Link href={`/deals/${deal.id}`} className={styles.kanbanCardLink}>
+                        <div className={styles.kanbanCardTitle}>
+                          {deal.name}
+                          {deal.overdueTodoCount > 0 && (
+                            <span className={styles.overdueBadge} title={`期限超過TODO: ${deal.overdueTodoCount}件`}>!</span>
+                          )}
+                        </div>
+                        <div className={styles.kanbanCardMeta}>
+                          {deal.customerCompany?.name ?? "—"}{deal.employee ? ` / ${deal.employee.name}` : ""}
+                        </div>
+                        <div className={styles.kanbanCardBottom}>
+                          <span className={styles.kanbanCardAmount}>
+                            {deal.expectedAmount ? `${Number(deal.expectedAmount).toLocaleString()}円` : "—"}
+                          </span>
+                          {deal.probability != null && (
+                            <span className={styles.kanbanCardProb}>{deal.probability}%</span>
+                          )}
+                        </div>
+                      </Link>
                     </div>
-                    <div className={styles.kanbanCardMeta}>
-                      {deal.customerCompany?.name ?? "—"}{deal.employee ? ` / ${deal.employee.name}` : ""}
-                    </div>
-                    <div className={styles.kanbanCardBottom}>
-                      <span className={styles.kanbanCardAmount}>
-                        {deal.expectedAmount ? `${Number(deal.expectedAmount).toLocaleString()}円` : "—"}
-                      </span>
-                      {deal.probability != null && (
-                        <span className={styles.kanbanCardProb}>{deal.probability}%</span>
-                      )}
-                    </div>
-                  </Link>
-                ))}
+                  );
+                })}
                 {kanbanColumns[ph].length === 0 && (
                   <div className={styles.kanbanEmpty}>案件なし</div>
                 )}
