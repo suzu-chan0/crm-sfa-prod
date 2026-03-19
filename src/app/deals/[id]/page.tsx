@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, FormEvent, use, useMemo } from "react";
+import { useState, useEffect, FormEvent, use, useMemo, useRef, ChangeEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import styles from "./page.module.css";
@@ -207,10 +207,20 @@ export default function DealDetailPage({
     dueDate: "",
     priority: "MEDIUM",
     type: "TODO",
+    description: "",
   });
   const [todoMsg, setTodoMsg] = useState("");
   const [todoErr, setTodoErr] = useState("");
   const [toggling, setToggling] = useState<string | null>(null);
+
+  // Todo modal
+  const [showTodoModal, setShowTodoModal] = useState(false);
+  const [todoFiles, setTodoFiles] = useState<File[]>([]);
+  const todoFileInputRef = useRef<HTMLInputElement>(null);
+  const handleTodoFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files) return;
+    setTodoFiles(Array.from(e.target.files));
+  };
 
   // Edit form
   const [editForm, setEditForm] = useState({
@@ -446,7 +456,10 @@ export default function DealDetailPage({
       return;
     }
     setTodoMsg("追加しました");
-    setTodoForm({ ...todoForm, title: "", dueDate: "" });
+    setTodoForm({ title: "", dueDate: "", priority: "MEDIUM", type: "TODO", description: "" });
+    setTodoFiles([]);
+    if (todoFileInputRef.current) todoFileInputRef.current.value = "";
+    setShowTodoModal(false);
     fetchDeal();
   };
 
@@ -833,16 +846,55 @@ export default function DealDetailPage({
             </div>
             {todoErr && <p className={styles.errorMsg}>{todoErr}</p>}
 
-            {/* TODO Add form */}
-            <form onSubmit={submitTodo} className={styles.todoForm} style={{ marginTop: 8 }}>
-              <div className={styles.todoFormGrid}>
+            <div style={{ marginTop: 8 }}>
+              <button
+                type="button"
+                className="primary"
+                onClick={() => { setShowTodoModal(true); setTodoErr(""); setTodoMsg(""); }}
+              >
+                TODO追加
+              </button>
+              {todoMsg && <span className={styles.successMsg} style={{ marginLeft: 10 }}>{todoMsg}</span>}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* TODO add modal */}
+      {showTodoModal && (
+        <div
+          className={styles.modalOverlay}
+          onClick={() => { setShowTodoModal(false); setTodoErr(""); }}
+        >
+          <div className={styles.modalDialog} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <span className={styles.modalTitle}>TODO追加</span>
+              <button
+                type="button"
+                className={styles.modalCloseBtn}
+                onClick={() => { setShowTodoModal(false); setTodoErr(""); }}
+              >
+                ×
+              </button>
+            </div>
+            <form onSubmit={submitTodo}>
+              <div className={styles.modalBody}>
                 <div className={styles.todoFormGroup}>
                   <label>件名 *</label>
-                  <input type="text" value={todoForm.title} onChange={(e) => setTodoForm({ ...todoForm, title: e.target.value })} placeholder="TODO件名" />
+                  <input
+                    type="text"
+                    value={todoForm.title}
+                    onChange={(e) => setTodoForm({ ...todoForm, title: e.target.value })}
+                    placeholder="TODO件名"
+                  />
                 </div>
                 <div className={styles.todoFormGroup}>
                   <label>期限 *</label>
-                  <input type="date" value={todoForm.dueDate} onChange={(e) => setTodoForm({ ...todoForm, dueDate: e.target.value })} />
+                  <input
+                    type="date"
+                    value={todoForm.dueDate}
+                    onChange={(e) => setTodoForm({ ...todoForm, dueDate: e.target.value })}
+                  />
                 </div>
                 <div className={styles.todoFormRow}>
                   <div className={styles.todoFormGroup}>
@@ -861,15 +913,63 @@ export default function DealDetailPage({
                     </select>
                   </div>
                 </div>
+                <div className={styles.todoFormGroup}>
+                  <label>詳細説明</label>
+                  <textarea
+                    value={todoForm.description}
+                    onChange={(e) => setTodoForm({ ...todoForm, description: e.target.value })}
+                    placeholder="補足・詳細を入力"
+                    rows={3}
+                  />
+                </div>
+                <div>
+                  <button
+                    type="button"
+                    className={styles.attachBtn}
+                    onClick={() => todoFileInputRef.current?.click()}
+                  >
+                    添付
+                  </button>
+                  <input
+                    ref={todoFileInputRef}
+                    type="file"
+                    multiple
+                    style={{ display: "none" }}
+                    onChange={handleTodoFileChange}
+                  />
+                  {todoFiles.length > 0 && (
+                    <div className={styles.fileList}>
+                      {todoFiles.map((file) => {
+                        const tag = file.type.startsWith("image/")
+                          ? "画像"
+                          : file.type === "application/pdf"
+                          ? "PDF"
+                          : "その他";
+                        return (
+                          <span key={file.name} className={styles.fileItem}>
+                            <span className={styles.fileTag}>{tag}</span>
+                            {file.name}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               </div>
-              <div className={styles.todoFormActions}>
-                <button type="submit" className="primary">TODO追加</button>
-                {todoMsg && <span className={styles.successMsg}>{todoMsg}</span>}
+              <div className={styles.modalFooter}>
+                <button type="submit" className="primary">保存</button>
+                <button
+                  type="button"
+                  onClick={() => { setShowTodoModal(false); setTodoErr(""); }}
+                >
+                  キャンセル
+                </button>
+                {todoErr && <span className={styles.errorMsg}>{todoErr}</span>}
               </div>
             </form>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

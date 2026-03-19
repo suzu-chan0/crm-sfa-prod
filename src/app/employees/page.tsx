@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, FormEvent } from "react";
+import Link from "next/link";
 import styles from "./page.module.css";
 import { RowActionMenu } from "@/app/components/RowActionMenu";
 
@@ -289,7 +290,9 @@ export default function EmployeesPage() {
                   </tr>
                 ) : (
                   <tr key={emp.id}>
-                    <td className={styles.primaryCell}>{emp.name}</td>
+                    <td className={styles.primaryCell}>
+                      <Link href={`/deals?employeeId=${emp.id}`} className={styles.nameLink}>{emp.name}</Link>
+                    </td>
                     <td className={styles.secondaryCell}>{emp.email}</td>
                     <td className={styles.secondaryCell}>{emp.department || "—"}</td>
                     <td className={styles.secondaryCell}>{emp.position || "—"}</td>

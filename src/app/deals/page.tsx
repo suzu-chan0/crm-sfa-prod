@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo, FormEvent, useRef, ChangeEvent } from "react";
+import { useState, useEffect, useCallback, useMemo, FormEvent, useRef, ChangeEvent, Suspense } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import styles from "./page.module.css";
 
 type Deal = {
@@ -63,7 +64,16 @@ const INITIAL_CREATE_FORM = {
   expectedUnitPrice: "",
 };
 
-export default function DealsPage() {
+const INITIAL_TODO_CREATE_FORM = {
+  title: "",
+  dueDate: "",
+  priority: "MEDIUM",
+  type: "TODO",
+  description: "",
+};
+
+function DealsPageInner() {
+  const searchParams = useSearchParams();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [error, setError] = useState("");
@@ -74,7 +84,8 @@ export default function DealsPage() {
 
   // Filters
   const [q, setQ] = useState("");
-  const [employeeId, setEmployeeId] = useState("");
+  const [employeeId, setEmployeeId] = useState(searchParams.get("employeeId") ?? "");
+  const [companyId, setCompanyId] = useState(searchParams.get("companyId") ?? "");
   const [importance, setImportance] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
@@ -86,6 +97,27 @@ export default function DealsPage() {
   const [createForm, setCreateForm] = useState(INITIAL_CREATE_FORM);
   const [creating, setCreating] = useState(false);
   const [createErr, setCreateErr] = useState("");
+
+  // Todo modal for deal create form
+  const [showTodoCreateModal, setShowTodoCreateModal] = useState(false);
+  const [todoCreateForm, setTodoCreateForm] = useState(INITIAL_TODO_CREATE_FORM);
+  const [pendingTodo, setPendingTodo] = useState<typeof INITIAL_TODO_CREATE_FORM | null>(null);
+  const [todoModalErr, setTodoModalErr] = useState("");
+  const [todoPostErr, setTodoPostErr] = useState("");
+  const [todoCreateFiles, setTodoCreateFiles] = useState<File[]>([]);
+  const todoCreateFileInputRef = useRef<HTMLInputElement>(null);
+  const handleTodoCreateFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files) return;
+    setTodoCreateFiles(Array.from(e.target.files));
+  };
+  const handleTodoModalSave = (e: FormEvent) => {
+    e.preventDefault();
+    setTodoModalErr("");
+    if (!todoCreateForm.title.trim()) { setTodoModalErr("件名は必須です"); return; }
+    if (!todoCreateForm.dueDate) { setTodoModalErr("期限は必須です"); return; }
+    setPendingTodo({ ...todoCreateForm });
+    setShowTodoCreateModal(false);
+  };
 
   // Phase move
   const [movingId, setMovingId] = useState<string | null>(null);
@@ -102,6 +134,12 @@ export default function DealsPage() {
     if (!e.target.files) return;
     setCreateFiles(Array.from(e.target.files));
   };
+
+  // URL クエリ変更（ブラウザ履歴の前後移動など）に追従
+  useEffect(() => {
+    setEmployeeId(searchParams.get("employeeId") ?? "");
+    setCompanyId(searchParams.get("companyId") ?? "");
+  }, [searchParams]);
 
   useEffect(() => {
     fetch("/api/employees")
@@ -122,12 +160,13 @@ export default function DealsPage() {
     const params = new URLSearchParams();
     if (searchQ) params.set("q", searchQ);
     if (employeeId) params.set("employeeId", employeeId);
+    if (companyId) params.set("companyId", companyId);
     if (importance) params.set("importance", importance);
     if (dateFrom) params.set("dateFrom", dateFrom);
     if (dateTo) params.set("dateTo", dateTo);
     if (stagnant) params.set("stagnant", "true");
     return params;
-  }, [searchQ, employeeId, importance, dateFrom, dateTo, stagnant]);
+  }, [searchQ, employeeId, companyId, importance, dateFrom, dateTo, stagnant]);
 
   const fetchKanban = useCallback(() => {
     setKanbanLoading(true);
@@ -181,8 +220,13 @@ export default function DealsPage() {
     if (!createForm.name.trim()) missing.push("案件名");
     if (!createForm.customerCompanyId) missing.push("顧客企業");
     if (!createForm.phase) missing.push("フェーズ");
+    if (!pendingTodo) missing.push("TODO");
     if (missing.length > 0) {
       setCreateErr(`${missing.join("・")}は必須です`);
+      return;
+    }
+    if (!createForm.employeeId) {
+      setCreateErr("TODO登録には担当者の選択が必要です");
       return;
     }
 
@@ -206,7 +250,27 @@ export default function DealsPage() {
         const d = await res.json();
         throw new Error(d.error || `${res.status}`);
       }
+      const newDeal = await res.json();
+
+      // Post TODO using the new deal's ID
+      const todoRes = await fetch("/api/todos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...pendingTodo,
+          status: "NOT_STARTED",
+          dealId: newDeal.id,
+          customerCompanyId: createForm.customerCompanyId,
+          assigneeId: createForm.employeeId,
+        }),
+      });
+
+      // Reset form regardless of TODO result
       setCreateForm(INITIAL_CREATE_FORM);
+      setPendingTodo(null);
+      setTodoCreateForm(INITIAL_TODO_CREATE_FORM);
+      setTodoCreateFiles([]);
+      if (todoCreateFileInputRef.current) todoCreateFileInputRef.current.value = "";
       setCreateFiles([]);
       if (fileInputRef.current) fileInputRef.current.value = "";
       setShowCreate(false);
@@ -216,6 +280,12 @@ export default function DealsPage() {
         .then((r) => (r.ok ? r.json() : null))
         .then((data: Summary | null) => setSummary(data))
         .catch(() => {});
+
+      if (!todoRes.ok) {
+        setTodoPostErr("案件は作成されましたが、TODOの登録に失敗しました。案件詳細からTODOを再登録してください。");
+      } else {
+        setTodoPostErr("");
+      }
     } catch (err: unknown) {
       setCreateErr(err instanceof Error ? err.message : "エラーが発生しました");
     } finally {
@@ -457,6 +527,10 @@ export default function DealsPage() {
                 setShowCreate(false);
                 setCreateFiles([]);
                 if (fileInputRef.current) fileInputRef.current.value = "";
+                setPendingTodo(null);
+                setTodoCreateForm(INITIAL_TODO_CREATE_FORM);
+                setTodoCreateFiles([]);
+                if (todoCreateFileInputRef.current) todoCreateFileInputRef.current.value = "";
               }}
             >
               キャンセル
@@ -475,6 +549,20 @@ export default function DealsPage() {
               style={{ display: "none" }}
               onChange={handleCreateFileChange}
             />
+            <button
+              type="button"
+              className={styles.attachBtn}
+              onClick={() => {
+                if (pendingTodo) setTodoCreateForm({ ...pendingTodo });
+                setTodoModalErr("");
+                setShowTodoCreateModal(true);
+              }}
+            >
+              {pendingTodo ? "TODO変更" : "TODO追加"}
+            </button>
+            {pendingTodo && (
+              <span className={styles.todoBadge}>✓ {pendingTodo.title}</span>
+            )}
             {createErr && <span className={styles.createErr}>{createErr}</span>}
           </div>
           {createFiles.length > 0 && (
@@ -498,6 +586,7 @@ export default function DealsPage() {
       )}
 
       {/* Kanban view */}
+      {todoPostErr && <p className={styles.moveErr}>{todoPostErr}</p>}
       {moveErr && <p className={styles.moveErr}>{moveErr}</p>}
       {kanbanLoading ? (
         <p className={styles.loading}>読み込み中...</p>
@@ -594,6 +683,120 @@ export default function DealsPage() {
           ))}
         </div>
       )}
+
+      {/* TODO create modal */}
+      {showTodoCreateModal && (
+        <div
+          className={styles.modalOverlay}
+          onClick={() => setShowTodoCreateModal(false)}
+        >
+          <div className={styles.modalDialog} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <span className={styles.modalTitle}>TODO設定</span>
+              <button
+                type="button"
+                className={styles.modalCloseBtn}
+                onClick={() => setShowTodoCreateModal(false)}
+              >
+                ×
+              </button>
+            </div>
+            <form onSubmit={handleTodoModalSave}>
+              <div className={styles.modalBody}>
+                <div className={styles.createGroup}>
+                  <label>件名 *</label>
+                  <input
+                    type="text"
+                    value={todoCreateForm.title}
+                    onChange={(e) => setTodoCreateForm({ ...todoCreateForm, title: e.target.value })}
+                    placeholder="TODO件名"
+                  />
+                </div>
+                <div className={styles.createGroup}>
+                  <label>期限 *</label>
+                  <input
+                    type="date"
+                    value={todoCreateForm.dueDate}
+                    onChange={(e) => setTodoCreateForm({ ...todoCreateForm, dueDate: e.target.value })}
+                  />
+                </div>
+                <div className={styles.modalRow}>
+                  <div className={styles.createGroup}>
+                    <label>優先度</label>
+                    <select value={todoCreateForm.priority} onChange={(e) => setTodoCreateForm({ ...todoCreateForm, priority: e.target.value })}>
+                      <option value="HIGH">高</option>
+                      <option value="MEDIUM">中</option>
+                      <option value="LOW">低</option>
+                    </select>
+                  </div>
+                  <div className={styles.createGroup}>
+                    <label>種別</label>
+                    <select value={todoCreateForm.type} onChange={(e) => setTodoCreateForm({ ...todoCreateForm, type: e.target.value })}>
+                      <option value="TODO">TODO</option>
+                      <option value="NEXT_ACTION">NA</option>
+                    </select>
+                  </div>
+                </div>
+                <div className={styles.createGroup}>
+                  <label>詳細説明</label>
+                  <textarea
+                    value={todoCreateForm.description}
+                    onChange={(e) => setTodoCreateForm({ ...todoCreateForm, description: e.target.value })}
+                    placeholder="補足・詳細を入力"
+                    rows={3}
+                  />
+                </div>
+                <div>
+                  <button
+                    type="button"
+                    className={styles.attachBtn}
+                    onClick={() => todoCreateFileInputRef.current?.click()}
+                  >
+                    添付
+                  </button>
+                  <input
+                    ref={todoCreateFileInputRef}
+                    type="file"
+                    multiple
+                    style={{ display: "none" }}
+                    onChange={handleTodoCreateFileChange}
+                  />
+                  {todoCreateFiles.length > 0 && (
+                    <div className={styles.fileList}>
+                      {todoCreateFiles.map((file) => {
+                        const tag = file.type.startsWith("image/")
+                          ? "画像"
+                          : file.type === "application/pdf"
+                          ? "PDF"
+                          : "その他";
+                        return (
+                          <span key={file.name} className={styles.fileItem}>
+                            <span className={styles.fileTag}>{tag}</span>
+                            {file.name}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className={styles.modalFooter}>
+                <button type="submit" className="primary">設定</button>
+                <button type="button" onClick={() => setShowTodoCreateModal(false)}>キャンセル</button>
+                {todoModalErr && <span className={styles.createErr}>{todoModalErr}</span>}
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
+  );
+}
+
+export default function DealsPage() {
+  return (
+    <Suspense>
+      <DealsPageInner />
+    </Suspense>
   );
 }

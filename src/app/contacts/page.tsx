@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, FormEvent } from "react";
+import Link from "next/link";
 import styles from "./page.module.css";
 import { RowActionMenu } from "@/app/components/RowActionMenu";
 
@@ -335,7 +336,11 @@ export default function ContactsPage() {
                   </tr>
                 ) : (
                   <tr key={c.id}>
-                    <td className={styles.primaryCell}>{c.name}</td>
+                    <td className={styles.primaryCell}>
+                      {c.customerCompany
+                        ? <Link href={`/deals?companyId=${c.customerCompany.id}`} className={styles.nameLink}>{c.name}</Link>
+                        : c.name}
+                    </td>
                     <td className={styles.secondaryCell}>{c.customerCompany?.name ?? "—"}</td>
                     <td className={styles.secondaryCell}>{c.department ?? "—"}</td>
                     <td className={styles.secondaryCell}>{c.position ?? "—"}</td>
