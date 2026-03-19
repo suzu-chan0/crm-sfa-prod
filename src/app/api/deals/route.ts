@@ -8,6 +8,7 @@ export async function GET(request: NextRequest) {
   const sp = request.nextUrl.searchParams;
   const q = sp.get("q")?.trim() || "";
   const employeeId = sp.get("employeeId") || "";
+  const companyId = sp.get("companyId") || "";
   const phase = sp.get("phase") || "";
   const importance = sp.get("importance") || "";
   const dateFrom = sp.get("dateFrom") || "";
@@ -39,6 +40,7 @@ export async function GET(request: NextRequest) {
     ];
   }
   if (employeeId) where.employeeId = employeeId;
+  if (companyId) where.customerCompanyId = companyId;
   if (phase) where.phase = phase;
   if (importance) where.importance = importance;
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, FormEvent } from "react";
+import Link from "next/link";
 import styles from "./page.module.css";
 import { RowActionMenu } from "@/app/components/RowActionMenu";
 
@@ -280,7 +281,9 @@ export default function CompaniesPage() {
                   </tr>
                 ) : (
                   <tr key={c.id}>
-                    <td className={styles.primaryCell}>{c.name}</td>
+                    <td className={styles.primaryCell}>
+                      <Link href={`/deals?companyId=${c.id}`} className={styles.nameLink}>{c.name}</Link>
+                    </td>
                     <td className={styles.secondaryCell}>{c.address || "—"}</td>
                     <td className={styles.secondaryCell}>{c.industry || "—"}</td>
                     <td className={styles.secondaryCell}>{c.usage || "—"}</td>

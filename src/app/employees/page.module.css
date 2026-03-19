@@ -125,6 +125,15 @@
   font-weight: 600;
 }
 
+.nameLink {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.nameLink:hover {
+  text-decoration: underline;
+}
+
 .secondaryCell {
   color: var(--color-text-secondary);
 }

@@ -440,3 +440,201 @@
   color: var(--color-text-secondary);
   font-size: 12px;
 }
+
+/* ---- Section header action group (right side) ---- */
+.sectionHeaderActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ---- Print button ---- */
+.printBtn {
+  font-size: 12px;
+  padding: 4px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.printBtn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+/* ---- Proposal output section ---- */
+.proposalGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.proposalCard {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 14px 16px;
+}
+
+.proposalCardLabel {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--color-text-secondary);
+  margin-bottom: 6px;
+}
+
+.proposalCardContent {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--color-text);
+}
+
+/* ---- TODO modal ---- */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modalDialog {
+  background: var(--color-surface);
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+  width: 480px;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 64px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.modalTitle {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.modalCloseBtn {
+  background: none;
+  border: none;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  padding: 2px 6px;
+}
+
+.modalCloseBtn:hover {
+  color: var(--color-text);
+}
+
+.modalBody {
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+}
+
+.modalBody textarea {
+  padding: 6px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  background: var(--color-surface);
+  resize: vertical;
+  width: 100%;
+  font-size: 13px;
+  font-family: inherit;
+}
+
+.modalFooter {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 20px;
+  border-top: 1px solid var(--color-border);
+}
+
+/* ---- Attach button ---- */
+.attachBtn {
+  font-size: 12px;
+  padding: 5px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.attachBtn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+/* ---- Selected file list ---- */
+.fileList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.fileItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--color-text);
+  background: #f3f3f3;
+  border-radius: 4px;
+  padding: 3px 8px;
+  max-width: 280px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fileTag {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-primary);
+  background: #e8f4fd;
+  border-radius: 3px;
+  padding: 1px 5px;
+  flex-shrink: 0;
+}
+
+/* ---- Print control ----
+ * .printHidden: 画面では通常表示。@media print でのみ非表示。
+ * page.tsx 内の各要素に明示的に付与して制御する。
+ * nav / header (レイアウト外) はこのファイルでは制御しない。
+ */
+.printHidden { /* hidden in @media print below; no screen-side style */ }
+
+@media print {
+  .printHidden {
+    display: none !important;
+  }
+
+  /* 右列が非表示になるため 1カラムに展開 */
+  .twoColumn {
+    display: block !important;
+  }
+}

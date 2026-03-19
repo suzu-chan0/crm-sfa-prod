@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, FormEvent, use, useMemo } from "react";
+import { useState, useEffect, FormEvent, use, useMemo, useRef, ChangeEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import styles from "./page.module.css";
@@ -56,6 +56,94 @@ type DealDetail = {
   openTodoCount: number;
   overdueTodoCount: number;
 };
+
+// ---- Proposal patterns (dummy data, FE only) ----
+type ProposalCard = { label: string; content: string };
+type ProposalPattern = { id: string; phases: string[]; cards: ProposalCard[] };
+
+/** フォールバック先パターン ID。想定外のフェーズ値でも必ずこのパターンを表示する。 */
+const DEFAULT_PROPOSAL_PATTERN_ID = "standard";
+
+const PROPOSAL_PATTERNS: ProposalPattern[] = [
+  {
+    id: "standard",
+    phases: ["MEETING", "SAMPLE_PROVIDED"],
+    cards: [
+      {
+        label: "提案製品・ソリューション",
+        content:
+          "製品A シリーズ（型番: PA-2024）。高耐久・高精度を実現した主力ラインナップ。顧客の現行プロセスとの親和性が高く、既存設備との互換性も確認済み。",
+      },
+      {
+        label: "競合比較・優位性",
+        content:
+          "他社製品比: コスト30%削減、耐久性1.5倍。独自コーティング技術により長寿命化を実現。24時間対応の保守サポート体制と充実した技術ドキュメントを提供。",
+      },
+      {
+        label: "提案価格・条件",
+        content:
+          "単価: ¥12,500 / 個（100個以上は ¥11,000）。支払い: 月末締め翌月末払い。サンプル提供: 10個まで無償。初回発注時の送料は弊社負担。",
+      },
+      {
+        label: "導入スケジュール",
+        content:
+          "評価期間: 2週間。量産移行判断: 評価終了から1週間以内。初回納期: 受注後4週間。定期供給: 月次ロット対応可。専任担当者によるフォロー体制あり。",
+      },
+    ],
+  },
+  {
+    id: "evaluation",
+    phases: ["INITIAL_EVAL", "FULL_EVAL"],
+    cards: [
+      {
+        label: "評価項目",
+        content:
+          "①寸法精度（±0.01mm）②耐熱性（150℃・1000時間）③耐摩耗性（摩耗試験1000h）④表面粗さ（Ra0.8以下）。評価基準は事前に顧客と合意のうえ進行。",
+      },
+      {
+        label: "評価スケジュール",
+        content:
+          "Week1–2: サンプル評価。Week3: 中間報告・フィードバック反映。Week4: 最終評価実施。Week5: 結果報告・採用判断。マイルストーンは随時調整可。",
+      },
+      {
+        label: "技術サポート体制",
+        content:
+          "専任技術担当1名アサイン。問い合わせ: 翌営業日以内に回答。現地立会い: 週1回対応可。オンラインミーティング: 随時設定可能。",
+      },
+      {
+        label: "評価後の展開",
+        content:
+          "採用確定後: 量産条件の確定・契約締結。初回ロット: 最短4週間で納品可能。継続供給: 月次計画に基づき安定供給。評価データは全件提供。",
+      },
+    ],
+  },
+  {
+    id: "closing",
+    phases: ["WON", "LOST"],
+    cards: [
+      {
+        label: "結果サマリ",
+        content:
+          "採用・失注の最終判断結果と主要な経緯のサマリ。意思決定者・決定日・最終フェーズを記載。",
+      },
+      {
+        label: "採用/失注要因",
+        content:
+          "採用の場合: 決め手となった優位点・評価ポイント。失注の場合: 競合優位点・顧客課題とのミスマッチ・価格要因などを整理。",
+      },
+      {
+        label: "継続フォロー計画",
+        content:
+          "採用後: 量産移行・定期供給スケジュール・保守計画。失注後: 再提案機会の有無・フォロー頻度・関係維持方針。",
+      },
+      {
+        label: "次期提案候補",
+        content:
+          "顧客の今後のニーズ予測に基づく次期提案製品・ソリューション候補。クロスセル・アップセル機会を含む。",
+      },
+    ],
+  },
+];
 
 const PHASE_LABEL: Record<string, string> = {
   MEETING: "打合せ",
@@ -119,10 +207,20 @@ export default function DealDetailPage({
     dueDate: "",
     priority: "MEDIUM",
     type: "TODO",
+    description: "",
   });
   const [todoMsg, setTodoMsg] = useState("");
   const [todoErr, setTodoErr] = useState("");
   const [toggling, setToggling] = useState<string | null>(null);
+
+  // Todo modal
+  const [showTodoModal, setShowTodoModal] = useState(false);
+  const [todoFiles, setTodoFiles] = useState<File[]>([]);
+  const todoFileInputRef = useRef<HTMLInputElement>(null);
+  const handleTodoFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files) return;
+    setTodoFiles(Array.from(e.target.files));
+  };
 
   // Edit form
   const [editForm, setEditForm] = useState({
@@ -358,7 +456,10 @@ export default function DealDetailPage({
       return;
     }
     setTodoMsg("追加しました");
-    setTodoForm({ ...todoForm, title: "", dueDate: "" });
+    setTodoForm({ title: "", dueDate: "", priority: "MEDIUM", type: "TODO", description: "" });
+    setTodoFiles([]);
+    if (todoFileInputRef.current) todoFileInputRef.current.value = "";
+    setShowTodoModal(false);
     fetchDeal();
   };
 
@@ -366,9 +467,17 @@ export default function DealDetailPage({
   if (error) return <p className={styles.error}>エラー: {error}</p>;
   if (!deal) return <p className={styles.error}>案件が見つかりません</p>;
 
+  // deal.phase でパターンを自動選択。
+  // 想定外のフェーズ値は DEFAULT_PROPOSAL_PATTERN_ID にフォールバックし、
+  // それも見つからない場合は先頭パターンを使う。
+  const proposalPattern =
+    PROPOSAL_PATTERNS.find((p) => p.phases.includes(deal.phase)) ??
+    PROPOSAL_PATTERNS.find((p) => p.id === DEFAULT_PROPOSAL_PATTERN_ID) ??
+    PROPOSAL_PATTERNS[0];
+
   return (
     <div>
-      <Link href="/deals" className={styles.backLink}>
+      <Link href="/deals" className={`${styles.backLink} ${styles.printHidden}`}>
         ← 案件ボードに戻る
       </Link>
       <h1 className={styles.title}>
@@ -379,7 +488,7 @@ export default function DealDetailPage({
       </h1>
 
       {/* Summary cards */}
-      <div className={styles.summaryRow}>
+      <div className={`${styles.summaryRow} ${styles.printHidden}`}>
         <div className={styles.summaryCard}>
           <div className={styles.summaryLabel}>最終活動日</div>
           <div className={styles.summaryValue}>
@@ -404,9 +513,24 @@ export default function DealDetailPage({
           <div className={styles.section}>
             <div className={styles.sectionHeader}>
               <h2 className={styles.sectionTitle}>案件情報</h2>
-              {!isEditing && (
-                <button type="button" onClick={() => setIsEditing(true)}>編集</button>
-              )}
+              <div className={styles.sectionHeaderActions}>
+                {!isEditing && (
+                  <button
+                    type="button"
+                    className={styles.printHidden}
+                    onClick={() => setIsEditing(true)}
+                  >
+                    編集
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className={`${styles.printBtn} ${styles.printHidden}`}
+                  onClick={() => window.print()}
+                >
+                  印刷
+                </button>
+              </div>
             </div>
 
             {!isEditing ? (
@@ -465,7 +589,7 @@ export default function DealDetailPage({
           </div>
 
           {isEditing && (
-          <div className={styles.section}>
+          <div className={`${styles.section} ${styles.printHidden}`}>
             <form onSubmit={submitEdit} className={styles.editForm}>
               <div className={styles.editGrid}>
                 <div className={styles.formGroup}>
@@ -541,9 +665,24 @@ export default function DealDetailPage({
           </div>
           )}
 
+          {/* Proposal output section */}
+          <div className={styles.section}>
+            <div className={styles.sectionHeader}>
+              <h2 className={styles.sectionTitle}>提案情報出力</h2>
+            </div>
+            <div className={styles.proposalGrid}>
+              {proposalPattern.cards.map((card) => (
+                <div key={card.label} className={styles.proposalCard}>
+                  <div className={styles.proposalCardLabel}>{card.label}</div>
+                  <div className={styles.proposalCardContent}>{card.content}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
           {/* Phase change history */}
           {phaseHistory.length > 0 && (
-            <div className={styles.section}>
+            <div className={`${styles.section} ${styles.printHidden}`}>
               <div className={styles.sectionHeader}>
                 <h2 className={styles.sectionTitle}>フェーズ変更履歴（{phaseHistory.length}件）</h2>
               </div>
@@ -571,7 +710,7 @@ export default function DealDetailPage({
           )}
 
           {/* Activity history */}
-          <div className={styles.section}>
+          <div className={`${styles.section} ${styles.printHidden}`}>
             <div className={styles.sectionHeader}>
               <h2 className={styles.sectionTitle}>活動履歴（{deal.activityHistories.length}件）</h2>
             </div>
@@ -669,7 +808,7 @@ export default function DealDetailPage({
         </div>
 
         {/* RIGHT COLUMN: TODO */}
-        <div className={styles.rightCol}>
+        <div className={`${styles.rightCol} ${styles.printHidden}`}>
           <div className={styles.section}>
             <div className={styles.sectionHeader}>
               <h2 className={styles.sectionTitle}>TODO（{deal.todos.length}件）</h2>
@@ -707,16 +846,55 @@ export default function DealDetailPage({
             </div>
             {todoErr && <p className={styles.errorMsg}>{todoErr}</p>}
 
-            {/* TODO Add form */}
-            <form onSubmit={submitTodo} className={styles.todoForm} style={{ marginTop: 8 }}>
-              <div className={styles.todoFormGrid}>
+            <div style={{ marginTop: 8 }}>
+              <button
+                type="button"
+                className="primary"
+                onClick={() => { setShowTodoModal(true); setTodoErr(""); setTodoMsg(""); }}
+              >
+                TODO追加
+              </button>
+              {todoMsg && <span className={styles.successMsg} style={{ marginLeft: 10 }}>{todoMsg}</span>}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* TODO add modal */}
+      {showTodoModal && (
+        <div
+          className={styles.modalOverlay}
+          onClick={() => { setShowTodoModal(false); setTodoErr(""); }}
+        >
+          <div className={styles.modalDialog} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <span className={styles.modalTitle}>TODO追加</span>
+              <button
+                type="button"
+                className={styles.modalCloseBtn}
+                onClick={() => { setShowTodoModal(false); setTodoErr(""); }}
+              >
+                ×
+              </button>
+            </div>
+            <form onSubmit={submitTodo}>
+              <div className={styles.modalBody}>
                 <div className={styles.todoFormGroup}>
                   <label>件名 *</label>
-                  <input type="text" value={todoForm.title} onChange={(e) => setTodoForm({ ...todoForm, title: e.target.value })} placeholder="TODO件名" />
+                  <input
+                    type="text"
+                    value={todoForm.title}
+                    onChange={(e) => setTodoForm({ ...todoForm, title: e.target.value })}
+                    placeholder="TODO件名"
+                  />
                 </div>
                 <div className={styles.todoFormGroup}>
                   <label>期限 *</label>
-                  <input type="date" value={todoForm.dueDate} onChange={(e) => setTodoForm({ ...todoForm, dueDate: e.target.value })} />
+                  <input
+                    type="date"
+                    value={todoForm.dueDate}
+                    onChange={(e) => setTodoForm({ ...todoForm, dueDate: e.target.value })}
+                  />
                 </div>
                 <div className={styles.todoFormRow}>
                   <div className={styles.todoFormGroup}>
@@ -735,15 +913,63 @@ export default function DealDetailPage({
                     </select>
                   </div>
                 </div>
+                <div className={styles.todoFormGroup}>
+                  <label>詳細説明</label>
+                  <textarea
+                    value={todoForm.description}
+                    onChange={(e) => setTodoForm({ ...todoForm, description: e.target.value })}
+                    placeholder="補足・詳細を入力"
+                    rows={3}
+                  />
+                </div>
+                <div>
+                  <button
+                    type="button"
+                    className={styles.attachBtn}
+                    onClick={() => todoFileInputRef.current?.click()}
+                  >
+                    添付
+                  </button>
+                  <input
+                    ref={todoFileInputRef}
+                    type="file"
+                    multiple
+                    style={{ display: "none" }}
+                    onChange={handleTodoFileChange}
+                  />
+                  {todoFiles.length > 0 && (
+                    <div className={styles.fileList}>
+                      {todoFiles.map((file) => {
+                        const tag = file.type.startsWith("image/")
+                          ? "画像"
+                          : file.type === "application/pdf"
+                          ? "PDF"
+                          : "その他";
+                        return (
+                          <span key={file.name} className={styles.fileItem}>
+                            <span className={styles.fileTag}>{tag}</span>
+                            {file.name}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               </div>
-              <div className={styles.todoFormActions}>
-                <button type="submit" className="primary">TODO追加</button>
-                {todoMsg && <span className={styles.successMsg}>{todoMsg}</span>}
+              <div className={styles.modalFooter}>
+                <button type="submit" className="primary">保存</button>
+                <button
+                  type="button"
+                  onClick={() => { setShowTodoModal(false); setTodoErr(""); }}
+                >
+                  キャンセル
+                </button>
+                {todoErr && <span className={styles.errorMsg}>{todoErr}</span>}
               </div>
             </form>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
